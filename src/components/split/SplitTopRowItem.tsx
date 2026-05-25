@@ -474,6 +474,7 @@ function SplitTopRowItemInner(props: SplitTopRowItemProps) {
       paneState: resolvedPaneState,
       paneControllerCtx,
       isActiveSessionPane,
+      projectName: paneProject?.name,
       widthPercent,
       handleSharePx,
       minChatWidth: getChatPaneMinWidthPx("split"),

@@ -190,6 +190,7 @@ export const UI_TEXT_ZH_CN: Record<string, string> = {
   "Copy": "复制",
   "Copied": "已复制",
   "Close": "关闭",
+  "Close file": "关闭文件",
   "Open": "打开",
   "Add": "添加",
   "Remove": "移除",

@@ -1,15 +1,12 @@
 import { memo, startTransition, useMemo, useCallback, useEffect, useState } from "react";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2, X } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PanelHeader } from "@/components/PanelHeader";
 import { OpenInEditorButton } from "./OpenInEditorButton";
 import {
-  ACCESS_ICON,
-  ACCESS_COLOR,
-  ACCESS_LABEL,
-  formatRanges,
   getRelativePath,
 } from "@/lib/file-access";
 import { getLanguageFromPath } from "@/lib/languages";
@@ -29,6 +26,7 @@ interface FilesPanelProps {
   cwd?: string;
   activeEngine?: EngineId;
   manualFiles?: string[];
+  onCloseManualFile?: (filePath: string) => void;
   onScrollToToolCall?: (messageId: string) => void;
   enabled?: boolean;
   resolvedTheme?: ResolvedTheme;
@@ -41,6 +39,7 @@ export const FilesPanel = memo(function FilesPanel({
   cwd,
   activeEngine,
   manualFiles = [],
+  onCloseManualFile,
   onScrollToToolCall,
   enabled = true,
   resolvedTheme = "dark",
@@ -55,6 +54,7 @@ export const FilesPanel = memo(function FilesPanel({
     error: string | null;
     loading: boolean;
   } | null>(null);
+  const [closedPaths, setClosedPaths] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     if (!enabled || activeEngine !== "claude" || !cwd) {
@@ -120,9 +120,23 @@ export const FilesPanel = memo(function FilesPanel({
     };
   }, [activeEngine, cacheKey, cacheSessionId, cwd, enabled, hasClaudeMd, messages]);
 
+  useEffect(() => {
+    if (manualFiles.length === 0) return;
+    setClosedPaths((current) => {
+      let changed = false;
+      const next = new Set(current);
+      for (const path of manualFiles) {
+        if (next.delete(path)) changed = true;
+      }
+      return changed ? next : current;
+    });
+  }, [manualFiles]);
+
   const files = useMemo(() => {
     const derivedFiles = data?.files ?? [];
-    if (manualFiles.length === 0) return derivedFiles;
+    if (manualFiles.length === 0) {
+      return derivedFiles.filter((file) => !closedPaths.has(file.path));
+    }
 
     const derivedPaths = new Set(derivedFiles.map((file) => file.path));
     const manualAccesses = manualFiles
@@ -133,8 +147,8 @@ export const FilesPanel = memo(function FilesPanel({
         lastAccessed: Date.now() - index,
         ranges: [],
       }));
-    return [...manualAccesses, ...derivedFiles];
-  }, [data?.files, manualFiles]);
+    return [...manualAccesses, ...derivedFiles].filter((file) => !closedPaths.has(file.path));
+  }, [closedPaths, data?.files, manualFiles]);
 
   useEffect(() => {
     if (files.length === 0) {
@@ -188,6 +202,7 @@ export const FilesPanel = memo(function FilesPanel({
     const syntaxStyle = resolvedTheme === "dark" ? oneDark : oneLight;
     return highlightToLines(reviewFile.content, selectedLanguage, syntaxStyle);
   }, [resolvedTheme, reviewFile, selectedLanguage]);
+  const selectedRelativePath = selectedPath ? getRelativePath(selectedPath, cwd) : null;
 
   const handleClick = useCallback((filePath: string) => {
     setSelectedPath(filePath);
@@ -195,6 +210,15 @@ export const FilesPanel = memo(function FilesPanel({
     const messageId = data?.lastToolCallIdByFile.get(filePath);
     if (messageId) onScrollToToolCall(messageId);
   }, [data, onScrollToToolCall]);
+
+  const handleCloseFile = useCallback((filePath: string) => {
+    setClosedPaths((current) => {
+      const next = new Set(current);
+      next.add(filePath);
+      return next;
+    });
+    onCloseManualFile?.(filePath);
+  }, [onCloseManualFile]);
 
   return (
     <div className="flex h-full flex-col">
@@ -220,53 +244,41 @@ export const FilesPanel = memo(function FilesPanel({
           </p>
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1">
-          <ScrollArea className="min-h-0 w-48 shrink-0 border-r border-border/50">
-            <div className="flex flex-col py-1">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <ScrollArea className="shrink-0 border-b border-border/50">
+            <div className="flex min-w-max items-center gap-1 px-2 py-1">
               {files.map((file) => {
-                const Icon = ACCESS_ICON[file.accessType];
-                const color = ACCESS_COLOR[file.accessType];
-                const label = ACCESS_LABEL[file.accessType];
-                const { fileName, dirPath } = getRelativePath(file.path, cwd);
-                const rangeText = formatRanges(file);
+                const { fileName } = getRelativePath(file.path, cwd);
                 const isSelected = file.path === selectedPath;
 
                 return (
                   <div
                     key={file.path}
-                    className={`group flex w-full cursor-pointer items-center gap-2 px-3 py-1 text-start transition-colors hover:bg-foreground/[0.04] ${
-                      isSelected ? "bg-foreground/[0.06]" : ""
+                    className={`group flex h-7 max-w-44 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2 text-start transition-colors hover:bg-foreground/[0.04] ${
+                      isSelected ? "bg-foreground/[0.08] text-foreground" : "text-foreground/65"
                     }`}
                     onClick={() => handleClick(file.path)}
                   >
-                    <Icon className={`h-3 w-3 shrink-0 ${color}`} strokeWidth={1.75} />
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex min-w-0 items-baseline gap-1.5">
-                            <span className="truncate text-xs font-medium text-foreground/85 transition-colors duration-150 group-hover:text-foreground">
-                              {fileName}
-                            </span>
-                            {rangeText && (
-                              <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground/50">
-                                {rangeText}
-                              </span>
-                            )}
-                          </div>
-                          {dirPath && (
-                            <div className="truncate text-[10px] text-muted-foreground/55">
-                              {dirPath}
-                            </div>
-                          )}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="left" sideOffset={8}>
-                        <p className="text-xs">
-                          {file.path} ({label.toLowerCase()}{rangeText ? `, ${rangeText}` : ""}{file.totalLines ? ` of ${file.totalLines}` : ""})
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <OpenInEditorButton filePath={file.path} />
+                    <span className="min-w-0 truncate text-xs font-medium">
+                      {fileName}
+                    </span>
+                    <button
+                      type="button"
+                      title="Close file"
+                      className="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm text-foreground/30 opacity-0 transition hover:bg-foreground/[0.08] hover:text-foreground/70 group-hover:opacity-100"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleCloseFile(file.path);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        handleCloseFile(file.path);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
                   </div>
                 );
               })}
@@ -278,8 +290,15 @@ export const FilesPanel = memo(function FilesPanel({
               <>
                 <div className="flex h-8 shrink-0 items-center gap-2 border-b border-border/50 px-3">
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-xs font-medium text-foreground/80">
-                      {getRelativePath(selectedPath, cwd).fileName}
+                    <div className="flex min-w-0 items-baseline gap-2">
+                      <span className="shrink-0 text-xs font-medium text-foreground/80">
+                        {selectedRelativePath?.fileName}
+                      </span>
+                      {selectedRelativePath?.dirPath && (
+                        <span className="min-w-0 truncate text-[10px] text-muted-foreground/45">
+                          {selectedRelativePath.dirPath}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <span className="shrink-0 rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] text-muted-foreground">
@@ -303,16 +322,24 @@ export const FilesPanel = memo(function FilesPanel({
                   </div>
                 ) : (
                   <ScrollArea className="min-h-0 flex-1">
-                    <pre className="m-0 min-w-max p-3 font-mono text-[11px] leading-5 text-foreground/85">
-                      {highlightedLines.map((line, index) => (
-                        <div key={index} className="flex min-h-5">
-                          <span className="w-10 shrink-0 select-none pr-3 text-right tabular-nums text-muted-foreground/35">
-                            {index + 1}
-                          </span>
-                          <code className="whitespace-pre">{line}</code>
-                        </div>
-                      ))}
-                    </pre>
+                    {selectedLanguage === "markdown" ? (
+                      <div className="prose dark:prose-invert prose-sm max-w-none p-4 text-foreground/80 wrap-break-word">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {reviewFile?.content ?? ""}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <pre className="m-0 min-w-max p-3 font-mono text-[11px] leading-5 text-foreground/85">
+                        {highlightedLines.map((line, index) => (
+                          <div key={index} className="flex min-h-5">
+                            <span className="w-10 shrink-0 select-none pr-3 text-right tabular-nums text-muted-foreground/35">
+                              {index + 1}
+                            </span>
+                            <code className="whitespace-pre">{line}</code>
+                          </div>
+                        ))}
+                      </pre>
+                    )}
                   </ScrollArea>
                 )}
               </>

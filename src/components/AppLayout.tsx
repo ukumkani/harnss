@@ -299,6 +299,9 @@ export function AppLayout() {
     if (mainToolWorkspace.getToolIsland("files")) return;
     mainToolWorkspace.openToolIsland("files", mainToolWorkspace.getRememberedDock("files") ?? "top");
   }, [mainToolWorkspace]);
+  const handleCloseProjectFile = useCallback((filePath: string) => {
+    setReviewTargetFiles((current) => current.filter((entry) => entry !== filePath));
+  }, []);
   const mainToolAreaRef = useRef<HTMLDivElement>(null);
   const mainTopToolColumnRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const mainBottomRowRef = useRef<HTMLDivElement>(null);
@@ -968,6 +971,7 @@ export function AppLayout() {
     onElementGrab: handleElementGrab,
     onScrollToToolCall: setScrollToMessageId,
     onOpenProjectFile: handleOpenProjectFile,
+    onCloseProjectFile: handleCloseProjectFile,
     reviewTargetFiles,
     collapsedRepos: settings.collapsedRepos,
     onToggleRepoCollapsed: settings.toggleRepoCollapsed,
@@ -1484,6 +1488,7 @@ export function AppLayout() {
                   model={activePaneCtrl?.paneHeaderModel}
                   sessionId={manager.sessionInfo?.sessionId}
                   totalCost={manager.totalCost}
+                  projectName={activeSessionProject?.name}
                   title={manager.activeSession?.title}
                   titleGenerating={manager.activeSession?.titleGenerating}
                   planMode={activePaneCtrl?.panePlanMode ?? settings.planMode}
