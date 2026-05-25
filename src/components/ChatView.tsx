@@ -10,6 +10,7 @@ import { SummaryBlock } from "./SummaryBlock";
 import { ToolCall } from "./ToolCall";
 import { ToolGroupBlock } from "./ToolGroupBlock";
 import { TurnChangesSummary } from "./TurnChangesSummary";
+import { RegionSearchOverlay } from "@/components/RegionSearchOverlay";
 import { extractTurnSummaries } from "@/lib/chat/turn-changes";
 import type { TurnSummary } from "@/lib/chat/turn-changes";
 import { computeToolGroups, type ToolGroup, type ToolGroupInfo } from "@/lib/workspace/tool-groups";
@@ -26,6 +27,7 @@ import {
 import { estimateRowHeight } from "@/lib/chat/virtualization";
 import { CHAT_ROW_CLASS } from "@/components/lib/chat-layout";
 import { useSettingsStore } from "@/stores/settings-store";
+import { isEditableSearchTarget, useRegionSearch } from "@/hooks/useRegionSearch";
 
 // ── Row model ──
 
@@ -360,6 +362,7 @@ function ChatViewContent({
   // ── Display preferences from Zustand store (only those used directly in ChatViewContent) ──
   const autoGroupTools = useSettingsStore((s) => s.autoGroupTools);
   const avoidGroupingEdits = useSettingsStore((s) => s.avoidGroupingEdits);
+  const searchScopeRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [useFullWidthMessages, setUseFullWidthMessages] = useState(false);
 
@@ -584,6 +587,9 @@ function ChatViewContent({
     toolGroups,
     turnSummaryByEndIndex,
   ]);
+  const lastMessage = messages[messages.length - 1];
+  const searchRefreshKey = `${rows.length}:${lastMessage?.id ?? ""}:${lastMessage?.content.length ?? 0}:${lastMessage?.displayContent?.length ?? 0}`;
+  const regionSearch = useRegionSearch(searchScopeRef, searchRefreshKey);
 
   // ── Progressive rendering: render bottom rows immediately, hydrate upward in background ──
   // `hydratedFrom` is the index from which rows are fully rendered.
@@ -842,34 +848,57 @@ function ChatViewContent({
   return (
     <ChatUiStateProvider>
       <div
-        ref={scrollContainerRef}
-        className="relative min-h-0 flex-1 overflow-y-auto"
-        style={{ overscrollBehaviorY: "contain" }}
-        onScroll={handleScroll}
-        onPointerDown={handlePointerDown}
+        ref={searchScopeRef}
+        tabIndex={-1}
+        className="relative min-h-0 flex-1 outline-none"
+        onKeyDownCapture={regionSearch.handleKeyDownCapture}
+        onPointerDownCapture={(event) => {
+          if (!isEditableSearchTarget(event.target)) {
+            searchScopeRef.current?.focus({ preventScroll: true });
+          }
+        }}
       >
-        <div style={chatContentStyle}>
-          {/* Single spacer for all unhydrated rows — 1 div instead of hundreds */}
-          {unhydratedHeight > 0 && (
-            <div style={{ height: `${unhydratedHeight}px` }} aria-hidden />
-          )}
-          {/* Only render hydrated rows — initial mount: ~20 divs instead of 500 */}
-          {rows.slice(effectiveHydratedFrom).map((row) => (
-            <div key={getRowKey(row)} className="flow-root">
-              <ChatMessageRow
-                row={row}
-                showThinking={showThinking}
-                animatingGroupKeys={animatingGroupKeys}
-                assistantTurnDividerLabels={assistantTurnDividerLabels}
-                continuationIds={continuationIds}
-                sendNextId={sendNextId}
-                onRevert={onRevert}
-                onFullRevert={onFullRevert}
-                onSendQueuedNow={onSendQueuedNow}
-                onUnqueueQueuedMessage={onUnqueueQueuedMessage}
-              />
-            </div>
-          ))}
+        {regionSearch.open && (
+          <RegionSearchOverlay
+            query={regionSearch.query}
+            currentIndex={regionSearch.currentIndex}
+            matchCount={regionSearch.matchCount}
+            onQueryChange={regionSearch.setQuery}
+            onClose={regionSearch.closeSearch}
+            onNext={regionSearch.goNext}
+            onPrev={regionSearch.goPrev}
+          />
+        )}
+        <div
+          ref={scrollContainerRef}
+          className="relative h-full min-h-0 overflow-y-auto"
+          style={{ overscrollBehaviorY: "contain" }}
+          onScroll={handleScroll}
+          onPointerDown={handlePointerDown}
+        >
+          <div style={chatContentStyle}>
+            {/* Single spacer for all unhydrated rows — 1 div instead of hundreds */}
+            {unhydratedHeight > 0 && (
+              <div style={{ height: `${unhydratedHeight}px` }} aria-hidden />
+            )}
+            {/* Only render hydrated rows — initial mount: ~20 divs instead of 500 */}
+            {rows.slice(effectiveHydratedFrom).map((row) => (
+              <div key={getRowKey(row)} className="flow-root">
+                <ChatMessageRow
+                  row={row}
+                  showThinking={showThinking}
+                  animatingGroupKeys={animatingGroupKeys}
+                  assistantTurnDividerLabels={assistantTurnDividerLabels}
+                  continuationIds={continuationIds}
+                  sendNextId={sendNextId}
+                  onRevert={onRevert}
+                  onFullRevert={onFullRevert}
+                  onSendQueuedNow={onSendQueuedNow}
+                  onUnqueueQueuedMessage={onUnqueueQueuedMessage}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </ChatUiStateProvider>

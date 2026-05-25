@@ -11,7 +11,7 @@
 import { useRef } from "react";
 import { usePaneResize } from "@/hooks/usePaneResize";
 import type { MainToolWorkspaceState } from "@/hooks/useMainToolWorkspace";
-import { MIN_TOOLS_PANEL_WIDTH, SPLIT_HANDLE_WIDTH } from "@/lib/layout/constants";
+import { SPLIT_HANDLE_WIDTH, getMinLayoutItemSizePx } from "@/lib/layout/constants";
 
 export function useMainToolPaneResize(
   workspace: MainToolWorkspaceState,
@@ -41,7 +41,10 @@ export function useMainToolPaneResize(
       ]);
     },
     containerRef,
-    minWidthsPx: workspace.widthFractions.slice(1).map(() => MIN_TOOLS_PANEL_WIDTH),
+    minWidthsPx: workspace.widthFractions.slice(1).map(() => {
+      const containerWidth = containerRef.current?.getBoundingClientRect().width ?? 0;
+      return getMinLayoutItemSizePx(containerWidth);
+    }),
     handleWidthPx: SPLIT_HANDLE_WIDTH,
   });
 }

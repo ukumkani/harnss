@@ -9,6 +9,7 @@
 
 import { useCallback, useState } from "react";
 import type { MainToolWorkspaceState } from "@/hooks/useMainToolWorkspace";
+import { getMinLayoutItemSizePx } from "@/lib/layout/constants";
 import { resolveMainToolAreaLeadingColumnResize } from "@/lib/workspace/main-tool-widths";
 
 export interface UseMainToolAreaResizeInput {
@@ -59,6 +60,7 @@ export function useMainToolAreaResize(
           minChatWidth: mainWorkspaceChatMinWidth,
           toolRelativeFractions: mainToolRelativeFractions,
           outerHandleWidth,
+          minToolWidth: getMinLayoutItemSizePx(mainCombinedWorkspaceWidth),
         });
         mainToolWorkspace.setWidthFractionsDirect(nextLayout.widthFractions);
         mainToolWorkspace.setPreferredTopAreaWidthPx(nextLayout.preferredTopAreaWidthPx);

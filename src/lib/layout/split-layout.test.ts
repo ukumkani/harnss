@@ -48,13 +48,13 @@ describe("split layout utilities", () => {
 
   it("calculates split pane capacity from width", () => {
     expect(getMaxVisibleSplitPaneCount(0)).toBe(1);
-    expect(getMaxVisibleSplitPaneCount(458)).toBe(1);
-    expect(getMaxVisibleSplitPaneCount(920)).toBe(2);
-    expect(getMaxVisibleSplitPaneCount(1382)).toBe(3);
+    expect(getMaxVisibleSplitPaneCount(458)).toBe(4);
+    expect(getMaxVisibleSplitPaneCount(920)).toBe(4);
+    expect(getMaxVisibleSplitPaneCount(1382)).toBe(4);
   });
 
   it("includes split pane count in the app minimum width", () => {
-    expect(getRequiredSplitContentWidth(3)).toBe(1382);
+    expect(getRequiredSplitContentWidth(3)).toBe(8);
 
     expect(getAppMinimumWidth({
       sidebarOpen: true,
@@ -65,7 +65,7 @@ describe("split layout utilities", () => {
       isSplitViewEnabled: false,
       splitPaneCount: 1,
       isWindows: false,
-    })).toBe(1532);
+    })).toBe(348);
 
     expect(getAppMinimumWidth({
       sidebarOpen: true,
@@ -77,7 +77,7 @@ describe("split layout utilities", () => {
       splitPaneCount: 3,
       splitTopRowItemKinds: ["chat", "chat", "chat"],
       isWindows: false,
-    })).toBe(1674);
+    })).toBe(300);
   });
 
   it("uses the live tools column width when it is wider than the minimum", () => {
@@ -91,6 +91,6 @@ describe("split layout utilities", () => {
       isSplitViewEnabled: false,
       splitPaneCount: 1,
       isWindows: false,
-    })).toBe(1608);
+    })).toBe(344);
   });
 });

@@ -283,18 +283,13 @@ ipcMain.handle("browser:set-color-scheme", async (_event, payload: { targetWebCo
 });
 
 // Dynamic minimum window width — renderer calculates based on which panels are open.
-// Also expands the window if it's currently smaller than the new minimum (e.g. Tasks
-// panel appeared while at min size), so content never overflows off-screen.
+// Do not resize the app window here; opening/closing child regions must rebalance
+// existing regions instead of changing the outer window size.
 ipcMain.on("app:set-min-width", (_event, minWidth: number) => {
   if (mainWindow && Number.isFinite(minWidth) && minWidth >= 600) {
     const clamped = Math.min(Math.round(minWidth), 4000);
     const [, minH] = mainWindow.getMinimumSize();
     mainWindow.setMinimumSize(clamped, minH);
-    // Grow the window if it's currently smaller than the new minimum
-    const [currentW, currentH] = mainWindow.getSize();
-    if (currentW < clamped) {
-      mainWindow.setSize(clamped, currentH);
-    }
   }
 });
 
