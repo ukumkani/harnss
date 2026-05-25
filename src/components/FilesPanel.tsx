@@ -1,11 +1,13 @@
-import { memo, startTransition, useMemo, useCallback, useEffect, useState } from "react";
+import { memo, startTransition, useMemo, useCallback, useEffect, useRef, useState } from "react";
 import { FileText, Loader2, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PanelHeader } from "@/components/PanelHeader";
+import { RegionSearchOverlay } from "@/components/RegionSearchOverlay";
 import { OpenInEditorButton } from "./OpenInEditorButton";
+import { isEditableSearchTarget, useRegionSearch } from "@/hooks/useRegionSearch";
 import {
   getRelativePath,
 } from "@/lib/file-access";
@@ -70,6 +72,8 @@ export const FilesPanel = memo(function FilesPanel({
     loading: boolean;
   } | null>(null);
   const [closedPaths, setClosedPaths] = useState<Set<string>>(() => new Set());
+  const previewScopeRef = useRef<HTMLDivElement>(null);
+  const previewSearchRootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!enabled || activeEngine !== "claude" || !cwd) {
@@ -223,6 +227,8 @@ export const FilesPanel = memo(function FilesPanel({
     return highlightToLines(reviewFile.content, selectedLanguage, syntaxStyle);
   }, [resolvedTheme, reviewFile, selectedLanguage]);
   const selectedDisplayPath = selectedPath ? compactDisplayPath(selectedPath, cwd) : "";
+  const previewSearchKey = `${selectedPath ?? ""}:${reviewFile?.loading ? "loading" : "ready"}:${reviewFile?.content.length ?? 0}:${reviewFile?.error ?? ""}`;
+  const previewSearch = useRegionSearch(previewSearchRootRef, previewSearchKey);
 
   const handleClick = useCallback((filePath: string) => {
     setSelectedPath(filePath);
@@ -305,7 +311,28 @@ export const FilesPanel = memo(function FilesPanel({
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div
+            ref={previewScopeRef}
+            tabIndex={-1}
+            className="relative flex min-w-0 flex-1 flex-col outline-none"
+            onKeyDownCapture={previewSearch.handleKeyDownCapture}
+            onPointerDownCapture={(event) => {
+              if (!isEditableSearchTarget(event.target)) {
+                previewScopeRef.current?.focus({ preventScroll: true });
+              }
+            }}
+          >
+            {previewSearch.open && (
+              <RegionSearchOverlay
+                query={previewSearch.query}
+                currentIndex={previewSearch.currentIndex}
+                matchCount={previewSearch.matchCount}
+                onQueryChange={previewSearch.setQuery}
+                onClose={previewSearch.closeSearch}
+                onNext={previewSearch.goNext}
+                onPrev={previewSearch.goPrev}
+              />
+            )}
             {selectedPath ? (
               <>
                 <div className="flex h-8 shrink-0 items-center gap-2 border-b border-border/50 px-3">
@@ -319,42 +346,44 @@ export const FilesPanel = memo(function FilesPanel({
                   </div>
                   <OpenInEditorButton filePath={selectedPath} />
                 </div>
-                {reviewFile?.loading ? (
-                  <div className="flex flex-1 flex-col items-center justify-center gap-1 p-4">
-                    <Loader2 className="h-3 w-3 animate-spin text-foreground/25" />
-                    <p className="text-center text-[10px] text-muted-foreground/40">
-                      Loading file…
-                    </p>
-                  </div>
-                ) : reviewFile?.error ? (
-                  <div className="flex flex-1 flex-col items-center justify-center gap-1.5 p-6">
-                    <FileText className="h-4 w-4 text-foreground/15" />
-                    <p className="text-center text-[10px] leading-relaxed text-muted-foreground/40">
-                      Unable to load file
-                    </p>
-                  </div>
-                ) : (
-                  <ScrollArea className="min-h-0 flex-1">
-                    {selectedLanguage === "markdown" ? (
-                      <div className="prose dark:prose-invert prose-sm max-w-none p-4 text-foreground/80 wrap-break-word">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {reviewFile?.content ?? ""}
-                        </ReactMarkdown>
-                      </div>
-                    ) : (
-                      <pre className="m-0 min-w-max p-3 font-mono text-[11px] leading-5 text-foreground/85">
-                        {highlightedLines.map((line, index) => (
-                          <div key={index} className="flex min-h-5">
-                            <span className="w-10 shrink-0 select-none pr-3 text-right tabular-nums text-muted-foreground/35">
-                              {index + 1}
-                            </span>
-                            <code className="whitespace-pre">{line}</code>
-                          </div>
-                        ))}
-                      </pre>
-                    )}
-                  </ScrollArea>
-                )}
+                <div ref={previewSearchRootRef} className="min-h-0 flex-1">
+                  {reviewFile?.loading ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-1 p-4">
+                      <Loader2 className="h-3 w-3 animate-spin text-foreground/25" />
+                      <p className="text-center text-[10px] text-muted-foreground/40">
+                        Loading file…
+                      </p>
+                    </div>
+                  ) : reviewFile?.error ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-1.5 p-6">
+                      <FileText className="h-4 w-4 text-foreground/15" />
+                      <p className="text-center text-[10px] leading-relaxed text-muted-foreground/40">
+                        Unable to load file
+                      </p>
+                    </div>
+                  ) : (
+                    <ScrollArea className="h-full">
+                      {selectedLanguage === "markdown" ? (
+                        <div className="prose dark:prose-invert prose-sm max-w-none p-4 text-foreground/80 wrap-break-word">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {reviewFile?.content ?? ""}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <pre className="m-0 min-w-max p-3 font-mono text-[11px] leading-5 text-foreground/85">
+                          {highlightedLines.map((line, index) => (
+                            <div key={index} className="flex min-h-5">
+                              <span className="w-10 shrink-0 select-none pr-3 text-right tabular-nums text-muted-foreground/35">
+                                {index + 1}
+                              </span>
+                              <code className="whitespace-pre">{line}</code>
+                            </div>
+                          ))}
+                        </pre>
+                      )}
+                    </ScrollArea>
+                  )}
+                </div>
               </>
             ) : null}
           </div>

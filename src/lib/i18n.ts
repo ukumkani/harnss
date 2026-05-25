@@ -637,6 +637,7 @@ export const UI_TEXT_ZH_CN: Record<string, string> = {
   "Search chats...": "搜索聊天...",
   "Search files…": "搜索文件…",
   "Search icons...": "搜索图标...",
+  "Search keywords...": "搜索关键词...",
   "Search or enter URL": "搜索或输入 URL",
   "Search or enter URL\\u2026": "搜索或输入 URL…",
   "Search or enter URL…": "搜索或输入 URL…",
