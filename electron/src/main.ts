@@ -1,4 +1,3 @@
-import { execFile } from "child_process";
 import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, nativeTheme, session, shell, systemPreferences, webContents } from "electron";
 import path from "path";
 import http from "http";
@@ -48,6 +47,18 @@ if (glassEnabled) {
 }
 
 let mainWindow: BrowserWindow | null = null;
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!hasSingleInstanceLock) {
+  app.quit();
+}
+
+app.on("second-instance", () => {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  if (!mainWindow.isVisible()) mainWindow.show();
+  mainWindow.focus();
+});
 
 import type { ThemeOption, MacBackgroundEffect as SharedMacBackgroundEffect } from "@shared/types/settings";
 
@@ -197,21 +208,6 @@ function createWindow(): void {
       applyMacBackgroundEffect(pendingMacBackgroundEffect);
     });
   }
-}
-
-function refreshShellPath(): Promise<void> {
-  if (process.platform === "win32") return Promise.resolve();
-
-  return new Promise((resolve) => {
-    const shellPath = process.env.SHELL || "/bin/zsh";
-    execFile(shellPath, ["-ilc", 'echo -n "$PATH"'], { timeout: 5000 }, (error, stdout) => {
-      if (!error && stdout) {
-        process.env.PATH = stdout;
-        log("STARTUP", "Shell PATH refreshed");
-      }
-      resolve();
-    });
-  });
 }
 
 function configurePermissions(): void {
@@ -496,7 +492,7 @@ ipcMain.handle("speech:request-mic-permission", async () => {
 app.whenReady().then(() => {
   // Startup fork/join split:
   // Serial: migrate data, read settings that affect native window shape, create the first window.
-  // Async: shell PATH refresh, updater checks, analytics, dock icon, dev shortcuts.
+  // Async: updater checks, analytics, dock icon, dev shortcuts.
   migrateFromOpenAcpUi();
   if (process.platform === "darwin") {
     pendingMacBackgroundEffect = resolveMacBackgroundEffect(
@@ -508,7 +504,6 @@ app.whenReady().then(() => {
   configurePermissions();
 
   runStartupJoin([
-    { name: "shell-path", run: refreshShellPath },
     { name: "auto-updater", run: () => initAutoUpdater(getMainWindow) },
     { name: "prerelease-check", run: () => initPreReleaseCheck(getMainWindow) },
     { name: "posthog", run: () => initPostHog() },
