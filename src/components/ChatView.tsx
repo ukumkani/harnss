@@ -684,13 +684,18 @@ function ChatViewContent({
 
     updateComposerInset();
 
-    const observer = new ResizeObserver(() => {
+    const syncComposerInset = () => {
       updateComposerInset();
       followBottomNow();
-    });
+    };
+    const observer = new ResizeObserver(syncComposerInset);
     observer.observe(composer);
+    window.addEventListener("chat-composer-resize", syncComposerInset);
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("chat-composer-resize", syncComposerInset);
+    };
   }, [contentReady, followBottomNow]);
 
   useLayoutEffect(() => {
