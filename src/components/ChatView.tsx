@@ -673,16 +673,18 @@ function ChatViewContent({
     const el = scrollContainerRef.current;
     if (!el) return;
 
-    const composer = el.parentElement?.querySelector<HTMLElement>("[data-chat-composer]");
+    const chatPane = el.closest<HTMLElement>("[data-chat-pane]");
+    const insetScope = chatPane ?? el.parentElement;
+    const composer = insetScope?.querySelector<HTMLElement>("[data-chat-composer]");
     if (!composer) {
-      el.parentElement?.style.setProperty(CHAT_COMPOSER_INSET_VAR, "0px");
+      insetScope?.style.setProperty(CHAT_COMPOSER_INSET_VAR, "0px");
       setComposerInset((prev) => (prev === 0 ? prev : 0));
       return;
     }
 
     const updateComposerInset = () => {
       const nextInset = Math.ceil(composer.getBoundingClientRect().height);
-      el.parentElement?.style.setProperty(CHAT_COMPOSER_INSET_VAR, `${nextInset}px`);
+      insetScope?.style.setProperty(CHAT_COMPOSER_INSET_VAR, `${nextInset}px`);
       setComposerInset((prev) => (prev === nextInset ? prev : nextInset));
     };
 
@@ -699,7 +701,7 @@ function ChatViewContent({
     return () => {
       observer.disconnect();
       window.removeEventListener("chat-composer-resize", syncComposerInset);
-      el.parentElement?.style.removeProperty(CHAT_COMPOSER_INSET_VAR);
+      insetScope?.style.removeProperty(CHAT_COMPOSER_INSET_VAR);
     };
   }, [contentReady, followBottomNow]);
 

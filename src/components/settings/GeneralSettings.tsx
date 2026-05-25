@@ -1,10 +1,10 @@
 import { memo, useState, useCallback, useEffect } from "react";
-import { Download, MessageSquare, Code, Mic, Languages } from "lucide-react";
+import { Download, MessageSquare, Code, Mic, Languages, Type } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SettingRow, SettingsSelect, SettingsHeader, SettingsSection } from "@/components/settings/shared";
 import { DEFAULT_LANGUAGE, t } from "@/lib/i18n";
-import type { AppLanguage, AppSettings, PreferredEditor, VoiceDictationMode } from "@/types";
+import type { AppFontFamily, AppLanguage, AppSettings, PreferredEditor, VoiceDictationMode } from "@/types";
 
 interface GeneralSettingsProps {
   appSettings: AppSettings | null;
@@ -26,6 +26,8 @@ export const GeneralSettings = memo(function GeneralSettings({
   const [preferredEditor, setPreferredEditor] = useState<PreferredEditor>("auto");
   const [voiceDictation, setVoiceDictation] = useState<VoiceDictationMode>("native");
   const [selectedLanguage, setSelectedLanguage] = useState<AppLanguage>(language);
+  const [appFontFamily, setAppFontFamily] = useState<AppFontFamily>("system");
+  const [appBodyFontSize, setAppBodyFontSize] = useState(11);
 
   useEffect(() => {
     if (appSettings) {
@@ -35,6 +37,8 @@ export const GeneralSettings = memo(function GeneralSettings({
       setPreferredEditor(appSettings.preferredEditor || "auto");
       setVoiceDictation(appSettings.voiceDictation || "native");
       setSelectedLanguage(appSettings.language || DEFAULT_LANGUAGE);
+      setAppFontFamily(appSettings.appFontFamily || "system");
+      setAppBodyFontSize(Math.max(10, appSettings.appBodyFontSize || 11));
     }
   }, [appSettings]);
 
@@ -93,6 +97,23 @@ export const GeneralSettings = memo(function GeneralSettings({
     [onUpdateAppSettings],
   );
 
+  const handleFontFamilyChange = useCallback(
+    async (value: AppFontFamily) => {
+      setAppFontFamily(value);
+      await onUpdateAppSettings({ appFontFamily: value });
+    },
+    [onUpdateAppSettings],
+  );
+
+  const handleFontSizeChange = useCallback(
+    async (value: number) => {
+      const next = Math.max(10, value);
+      setAppBodyFontSize(next);
+      await onUpdateAppSettings({ appBodyFontSize: next });
+    },
+    [onUpdateAppSettings],
+  );
+
   return (
     <div className="flex h-full flex-col">
       <SettingsHeader title={t(language, "settings.general.title")} description={t(language, "settings.general.description")} />
@@ -111,6 +132,44 @@ export const GeneralSettings = memo(function GeneralSettings({
                   { value: "en", label: t(language, "settings.general.language.english") },
                   { value: "zh-CN", label: t(language, "settings.general.language.chinese") },
                 ]}
+              />
+            </SettingRow>
+          </SettingsSection>
+
+          <SettingsSection icon={Type} label={t(language, "settings.general.font.section")}>
+            <SettingRow
+              label={t(language, "settings.general.font.family.label")}
+              description={t(language, "settings.general.font.family.description")}
+            >
+              <SettingsSelect
+                value={appFontFamily}
+                onValueChange={handleFontFamilyChange}
+                options={[
+                  { value: "system", label: t(language, "settings.general.font.system") },
+                  { value: "arial", label: t(language, "settings.general.font.arial") },
+                  { value: "helvetica", label: t(language, "settings.general.font.helvetica") },
+                  { value: "serif", label: t(language, "settings.general.font.serif") },
+                  { value: "mono", label: t(language, "settings.general.font.mono") },
+                ]}
+              />
+            </SettingRow>
+            <SettingRow
+              label={t(language, "settings.general.font.size.label")}
+              description={t(language, "settings.general.font.size.description")}
+            >
+              <input
+                type="number"
+                min={10}
+                step={1}
+                value={appBodyFontSize}
+                onChange={(event) => {
+                  const next = Number(event.target.value);
+                  setAppBodyFontSize(Number.isFinite(next) ? Math.max(10, next) : 10);
+                }}
+                onBlur={(event) => {
+                  void handleFontSizeChange(Number(event.target.value));
+                }}
+                className="h-8 w-24 rounded-md border border-foreground/10 bg-background px-2.5 text-sm text-foreground outline-none transition-colors hover:border-foreground/20 focus:border-foreground/30 focus:ring-1 focus:ring-foreground/20"
               />
             </SettingRow>
           </SettingsSection>

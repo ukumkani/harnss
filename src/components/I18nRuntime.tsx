@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { DEFAULT_LANGUAGE, translateUiText } from "@/lib/i18n";
-import type { AppLanguage } from "@/types";
+import type { AppFontFamily, AppLanguage, AppSettings } from "@/types";
 
 const textOriginals = new WeakMap<Text, string>();
 const TRANSLATED_ATTRS = ["placeholder", "title", "aria-label"] as const;
@@ -25,6 +25,30 @@ const ATTRIBUTE_SKIP_SELECTOR = [
   "[data-chat-message]",
   ".prose",
 ].join(",");
+
+const FONT_FAMILY_CSS: Record<AppFontFamily, string> = {
+  system: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  arial: "Arial, Helvetica, sans-serif",
+  helvetica: "Helvetica, Arial, sans-serif",
+  serif: 'Georgia, "Times New Roman", serif',
+  mono: '"SF Mono", "Fira Code", "Cascadia Code", "JetBrains Mono", Menlo, monospace',
+};
+
+function getFontFamilyCss(fontFamily: AppSettings["appFontFamily"]): string {
+  return FONT_FAMILY_CSS[fontFamily] ?? FONT_FAMILY_CSS.system;
+}
+
+function getBodyLineHeight(fontSize: number): number {
+  return Math.ceil(fontSize * 1.36);
+}
+
+function applyTypographySettings(settings: AppSettings): void {
+  const fontSize = Math.max(10, Number(settings.appBodyFontSize) || 11);
+  const rootStyle = document.documentElement.style;
+  rootStyle.setProperty("--app-font-family", getFontFamilyCss(settings.appFontFamily));
+  rootStyle.setProperty("--app-body-font-size", `${fontSize}px`);
+  rootStyle.setProperty("--app-body-line-height", `${getBodyLineHeight(fontSize)}px`);
+}
 
 function restoreTextNode(node: Text): string {
   const original = textOriginals.get(node);
@@ -99,10 +123,13 @@ export function I18nRuntime() {
   useEffect(() => {
     let mounted = true;
     window.claude.settings.get().then((settings) => {
-      if (mounted) setLanguage(settings?.language ?? DEFAULT_LANGUAGE);
+      if (!mounted || !settings) return;
+      setLanguage(settings.language ?? DEFAULT_LANGUAGE);
+      applyTypographySettings(settings);
     });
     const unsubscribe = window.claude.settings.onChanged((settings) => {
       setLanguage(settings.language ?? DEFAULT_LANGUAGE);
+      applyTypographySettings(settings);
     });
     return () => {
       mounted = false;

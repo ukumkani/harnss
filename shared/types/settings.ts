@@ -10,6 +10,7 @@ export type PreferredEditor = "auto" | "cursor" | "code" | "zed";
 export type VoiceDictationMode = "native" | "whisper";
 export type ThemeOption = "light" | "dark" | "system";
 export type AppLanguage = "en" | "zh-CN";
+export type AppFontFamily = "system" | "arial" | "helvetica" | "serif" | "mono";
 export type MacBackgroundEffect = "liquid-glass" | "vibrancy" | "off";
 export type CodexBinarySource = "auto" | "managed" | "custom";
 export type ClaudeBinarySource = "auto" | "managed" | "custom";
@@ -46,6 +47,10 @@ export interface AppSettings {
   voiceDictation: VoiceDictationMode;
   /** UI language (default: "en") */
   language: AppLanguage;
+  /** Global UI font family (default: "system") */
+  appFontFamily: AppFontFamily;
+  /** Main body font size in px. Minimum: 10. Default: 11 */
+  appBodyFontSize: number;
   /** Per-event notification and sound configuration */
   notifications: NotificationSettings;
   /** Custom client name sent to Codex servers during handshake (default: "Harnss") */

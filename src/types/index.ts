@@ -99,6 +99,7 @@ export type {
   VoiceDictationMode,
   ThemeOption,
   AppLanguage,
+  AppFontFamily,
   MacBackgroundEffect,
   CodexBinarySource,
   ClaudeBinarySource,
