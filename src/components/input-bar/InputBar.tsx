@@ -789,12 +789,12 @@ export const InputBar = memo(function InputBar({
         onChange={handleFileInputChange}
       />
       <div
-        className={`group pointer-events-auto relative rounded-2xl border transition-all duration-200 ease-out ${
+        className={`group pointer-events-auto relative rounded-2xl border border-[color:var(--foreground)] bg-background transition-all duration-200 ease-out ${
           isDragging
-            ? "border-primary/50 bg-primary/5 ring-primary/25"
+            ? "ring-primary/25"
             : speech.isListening
-              ? "border-red-400/40 bg-background ring-red-400/20"
-              : "border-border/35 bg-background focus-within:border-border/60"
+              ? "ring-red-400/20"
+              : ""
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

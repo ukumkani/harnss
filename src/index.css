@@ -115,6 +115,7 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(0.99 0 0);
+  --sidebar-solid: oklch(0.99 0 0);
   --sidebar-foreground: oklch(0 0 0);
   --sidebar-primary: oklch(0.15 0.006 285.885);
   --sidebar-primary-foreground: oklch(0.985 0 0);
@@ -152,6 +153,7 @@
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.254 0 0);
+  --sidebar-solid: oklch(0.254 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
@@ -266,6 +268,20 @@ html.platform-darwin.glass-enabled:not(.dark) .session-item-button img {
    to avoid double-stacking the semi-transparent color. */
 .glass-enabled .bg-sidebar .bg-sidebar {
   background-color: transparent;
+}
+
+.app-sidebar {
+  background-color: var(--sidebar-solid) !important;
+}
+
+html.platform-darwin.glass-enabled:not(.dark) .app-sidebar {
+  --sidebar-foreground: oklch(0 0 0);
+  --sidebar-primary: oklch(0.15 0.006 285.885);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+}
+
+html.platform-darwin.glass-enabled:not(.dark) .app-sidebar .sidebar-search-glass {
+  --sidebar-foreground: oklch(0 0 0);
 }
 
 /* ── Island glass border — diagonal reflection ── */
