@@ -289,6 +289,16 @@ export function AppLayout() {
     bottomHeight: settings.bottomToolsHeight,
     bottomWidthFractions: settings.bottomToolsSplitRatios,
   }, mainCombinedWorkspaceWidthRef);
+  const [reviewTargetFiles, setReviewTargetFiles] = useState<string[]>([]);
+  const handleOpenProjectFile = useCallback((filePath: string) => {
+    setReviewTargetFiles((current) => [
+      filePath,
+      ...current.filter((entry) => entry !== filePath),
+    ]);
+
+    if (mainToolWorkspace.getToolIsland("files")) return;
+    mainToolWorkspace.openToolIsland("files", mainToolWorkspace.getRememberedDock("files") ?? "top");
+  }, [mainToolWorkspace]);
   const mainToolAreaRef = useRef<HTMLDivElement>(null);
   const mainTopToolColumnRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const mainBottomRowRef = useRef<HTMLDivElement>(null);
@@ -957,7 +967,8 @@ export function AppLayout() {
     resolvedTheme,
     onElementGrab: handleElementGrab,
     onScrollToToolCall: setScrollToMessageId,
-    onPreviewFile: handlePreviewFile,
+    onOpenProjectFile: handleOpenProjectFile,
+    reviewTargetFiles,
     collapsedRepos: settings.collapsedRepos,
     onToggleRepoCollapsed: settings.toggleRepoCollapsed,
     mcpServerStatuses: manager.mcpServerStatuses,

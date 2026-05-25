@@ -24,6 +24,7 @@ interface FilesPanelProps {
   messages: UIMessage[];
   cwd?: string;
   activeEngine?: EngineId;
+  manualFiles?: string[];
   onScrollToToolCall?: (messageId: string) => void;
   enabled?: boolean;
   headerControls?: React.ReactNode;
@@ -34,6 +35,7 @@ export const FilesPanel = memo(function FilesPanel({
   messages,
   cwd,
   activeEngine,
+  manualFiles = [],
   onScrollToToolCall,
   enabled = true,
   headerControls,
@@ -105,7 +107,21 @@ export const FilesPanel = memo(function FilesPanel({
     };
   }, [activeEngine, cacheKey, cacheSessionId, cwd, enabled, hasClaudeMd, messages]);
 
-  const files = data?.files ?? [];
+  const files = useMemo(() => {
+    const derivedFiles = data?.files ?? [];
+    if (manualFiles.length === 0) return derivedFiles;
+
+    const derivedPaths = new Set(derivedFiles.map((file) => file.path));
+    const manualAccesses = manualFiles
+      .filter((path) => !derivedPaths.has(path))
+      .map((path, index) => ({
+        path,
+        accessType: "read" as const,
+        lastAccessed: Date.now() - index,
+        ranges: [],
+      }));
+    return [...manualAccesses, ...derivedFiles];
+  }, [data?.files, manualFiles]);
 
   const handleClick = useCallback((filePath: string) => {
     if (!onScrollToToolCall) return;
