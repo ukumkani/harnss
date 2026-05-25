@@ -174,12 +174,12 @@ function stopProjectWatcher(cwd: string): void {
  * Only skips VCS internals and node_modules (too massive).
  * Used by the "Project Files" explorer panel.
  */
-async function listAllFiles(cwd: string, maxFiles = 10000): Promise<string[]> {
+async function listAllFiles(cwd: string, maxFiles?: number): Promise<string[]> {
   const files: string[] = [];
   const queue: string[] = [""];
   let visitedDirs = 0;
 
-  while (queue.length > 0 && files.length < maxFiles) {
+  while (queue.length > 0 && (maxFiles == null || files.length < maxFiles)) {
     const rel = queue.shift()!;
     const abs = rel ? path.join(cwd, rel) : cwd;
 

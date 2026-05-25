@@ -51,6 +51,7 @@ export interface ToolIslandContentProps {
   onElementGrab?: (element: GrabbedElement) => void;
   onScrollToToolCall?: (messageId: string) => void;
   onOpenProjectFile?: (path: string) => void;
+  onCloseProjectFile?: (path: string) => void;
   reviewTargetFiles: string[];
   collapsedRepos: Set<string>;
   onToggleRepoCollapsed: (path: string) => void;
@@ -86,6 +87,7 @@ export function ToolIslandContent({
   onElementGrab,
   onScrollToToolCall,
   onOpenProjectFile,
+  onCloseProjectFile,
   reviewTargetFiles,
   collapsedRepos,
   onToggleRepoCollapsed,
@@ -138,6 +140,7 @@ export function ToolIslandContent({
           cwd={projectPath}
           activeEngine={activeEngine}
           manualFiles={reviewTargetFiles}
+          onCloseManualFile={onCloseProjectFile}
           onScrollToToolCall={onScrollToToolCall}
           enabled={true}
           resolvedTheme={resolvedTheme}

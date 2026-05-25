@@ -52,6 +52,7 @@ const EXTENSION_ICON_COLORS: Record<string, string> = {
   html: "text-orange-400",
   md: "text-gray-400",
   py: "text-green-400",
+  java: "text-red-400",
   rs: "text-orange-500",
   go: "text-cyan-400",
   svg: "text-amber-400",

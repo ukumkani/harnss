@@ -24,6 +24,7 @@ interface UseToolIslandContextInput {
   onElementGrab: (element: GrabbedElement) => void;
   onScrollToToolCall: (messageId: string) => void;
   onOpenProjectFile: (path: string) => void;
+  onCloseProjectFile: (path: string) => void;
   reviewTargetFiles: string[];
   collapsedRepos: Set<string>;
   onToggleRepoCollapsed: (path: string) => void;
@@ -49,6 +50,7 @@ export function useToolIslandContext(input: UseToolIslandContextInput): ToolIsla
       onElementGrab: input.onElementGrab,
       onScrollToToolCall: input.onScrollToToolCall,
       onOpenProjectFile: input.onOpenProjectFile,
+      onCloseProjectFile: input.onCloseProjectFile,
       reviewTargetFiles: input.reviewTargetFiles,
       collapsedRepos: input.collapsedRepos,
       onToggleRepoCollapsed: input.onToggleRepoCollapsed,
@@ -71,6 +73,7 @@ export function useToolIslandContext(input: UseToolIslandContextInput): ToolIsla
       input.onElementGrab,
       input.onScrollToToolCall,
       input.onOpenProjectFile,
+      input.onCloseProjectFile,
       input.reviewTargetFiles,
       input.collapsedRepos,
       input.onToggleRepoCollapsed,

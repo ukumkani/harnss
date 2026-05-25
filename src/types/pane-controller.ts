@@ -53,6 +53,7 @@ export interface ToolIslandContextProps {
   onElementGrab?: (element: GrabbedElement) => void;
   onScrollToToolCall?: (messageId: string) => void;
   onOpenProjectFile?: (path: string) => void;
+  onCloseProjectFile?: (path: string) => void;
   reviewTargetFiles: string[];
   collapsedRepos: Set<string>;
   onToggleRepoCollapsed: (path: string) => void;
