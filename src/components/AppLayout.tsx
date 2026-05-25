@@ -1433,6 +1433,7 @@ export function AppLayout() {
           )}
 
           <motion.div
+            data-chat-pane
             layout={shouldAnimateTopRowLayout}
             transition={shouldAnimateTopRowLayout
               ? { type: "spring", stiffness: 380, damping: 34, mass: 0.65 }

@@ -21,6 +21,16 @@ export type TranslationKey =
   | "settings.general.language.description"
   | "settings.general.language.english"
   | "settings.general.language.chinese"
+  | "settings.general.font.section"
+  | "settings.general.font.family.label"
+  | "settings.general.font.family.description"
+  | "settings.general.font.system"
+  | "settings.general.font.arial"
+  | "settings.general.font.helvetica"
+  | "settings.general.font.serif"
+  | "settings.general.font.mono"
+  | "settings.general.font.size.label"
+  | "settings.general.font.size.description"
   | "settings.general.updates.section"
   | "settings.general.updates.automatic.label"
   | "settings.general.updates.automatic.description"
@@ -62,6 +72,16 @@ const EN: Record<TranslationKey, string> = {
   "settings.general.language.description": "Choose the display language for Harnss.",
   "settings.general.language.english": "English",
   "settings.general.language.chinese": "中文",
+  "settings.general.font.section": "Font",
+  "settings.general.font.family.label": "Font",
+  "settings.general.font.family.description": "Choose the global UI font.",
+  "settings.general.font.system": "System Default",
+  "settings.general.font.arial": "Arial",
+  "settings.general.font.helvetica": "Helvetica",
+  "settings.general.font.serif": "Serif",
+  "settings.general.font.mono": "Monospace",
+  "settings.general.font.size.label": "Font Size",
+  "settings.general.font.size.description": "Main body font size in pixels. Minimum is 10px.",
   "settings.general.updates.section": "Updates",
   "settings.general.updates.automatic.label": "Automatic updates",
   "settings.general.updates.automatic.description": "Check for app updates and show update notifications.",
@@ -104,6 +124,16 @@ const ZH_CN: Record<TranslationKey, string> = {
   "settings.general.language.description": "选择 Harnss 的显示语言。",
   "settings.general.language.english": "English",
   "settings.general.language.chinese": "中文",
+  "settings.general.font.section": "字体",
+  "settings.general.font.family.label": "字体",
+  "settings.general.font.family.description": "选择全局界面字体。",
+  "settings.general.font.system": "系统默认",
+  "settings.general.font.arial": "Arial",
+  "settings.general.font.helvetica": "Helvetica",
+  "settings.general.font.serif": "衬线字体",
+  "settings.general.font.mono": "等宽字体",
+  "settings.general.font.size.label": "字体大小",
+  "settings.general.font.size.description": "主体字体大小，单位为 px。最小不能小于 10px。",
   "settings.general.updates.section": "更新",
   "settings.general.updates.automatic.label": "自动更新",
   "settings.general.updates.automatic.description": "检查应用更新并显示更新通知。",

@@ -11,10 +11,10 @@
 import path from "path";
 import fs from "fs";
 import { getDataDir } from "./data-dir";
-import type { AppSettings, NotificationSettings } from "@shared/types/settings";
+import type { AppFontFamily, AppSettings, NotificationSettings } from "@shared/types/settings";
 
 // Re-export shared types so existing `import from "./app-settings"` consumers still work
-export type { AppSettings, AppLanguage, MacBackgroundEffect, PreferredEditor, VoiceDictationMode, NotificationTrigger, NotificationEventSettings, NotificationSettings, CodexBinarySource, ClaudeBinarySource } from "@shared/types/settings";
+export type { AppSettings, AppFontFamily, AppLanguage, MacBackgroundEffect, PreferredEditor, VoiceDictationMode, NotificationTrigger, NotificationEventSettings, NotificationSettings, CodexBinarySource, ClaudeBinarySource } from "@shared/types/settings";
 
 const NOTIFICATION_DEFAULTS: NotificationSettings = {
   exitPlanMode: { osNotification: "unfocused", sound: "always" },
@@ -30,6 +30,8 @@ const DEFAULTS: AppSettings = {
   preferredEditor: "auto",
   voiceDictation: "native",
   language: "en",
+  appFontFamily: "system",
+  appBodyFontSize: 11,
   notifications: NOTIFICATION_DEFAULTS,
   codexClientName: "Harnss",
   codexBinarySource: "auto",
@@ -41,6 +43,21 @@ const DEFAULTS: AppSettings = {
   macBackgroundEffect: "liquid-glass",
   analyticsEnabled: true,
 };
+
+const VALID_APP_FONT_FAMILIES: AppFontFamily[] = ["system", "arial", "helvetica", "serif", "mono"];
+
+function normalizeAppSettings(settings: AppSettings): AppSettings {
+  const appBodyFontSize = Number(settings.appBodyFontSize);
+  return {
+    ...settings,
+    appFontFamily: VALID_APP_FONT_FAMILIES.includes(settings.appFontFamily)
+      ? settings.appFontFamily
+      : DEFAULTS.appFontFamily,
+    appBodyFontSize: Number.isFinite(appBodyFontSize)
+      ? Math.max(10, appBodyFontSize)
+      : DEFAULTS.appBodyFontSize,
+  };
+}
 
 // ── Internal state ──
 
@@ -63,7 +80,7 @@ export function getAppSettings(): AppSettings {
     // Deep-merge `notifications` so upgrading users get defaults for each event type
     // even if their settings.json has a partial or missing notifications object.
     const parsedNotif = parsed.notifications as Partial<NotificationSettings> | undefined;
-    cached = {
+    cached = normalizeAppSettings({
       ...DEFAULTS,
       ...parsed,
       notifications: {
@@ -72,12 +89,12 @@ export function getAppSettings(): AppSettings {
         askUserQuestion: { ...NOTIFICATION_DEFAULTS.askUserQuestion, ...parsedNotif?.askUserQuestion },
         sessionComplete: { ...NOTIFICATION_DEFAULTS.sessionComplete, ...parsedNotif?.sessionComplete },
       },
-    };
+    });
     if (!cached.automaticUpdatesEnabled) {
       cached.allowPrereleaseUpdates = false;
     }
   } catch {
-    cached = { ...DEFAULTS };
+    cached = normalizeAppSettings({ ...DEFAULTS });
   }
   return cached;
 }
@@ -90,7 +107,7 @@ export function getAppSetting<K extends keyof AppSettings>(key: K): AppSettings[
 /** Update one or more settings and persist to disk. */
 export function setAppSettings(patch: Partial<AppSettings>): AppSettings {
   const current = getAppSettings();
-  const next = { ...current, ...patch };
+  const next = normalizeAppSettings({ ...current, ...patch });
   if (!next.automaticUpdatesEnabled) {
     next.allowPrereleaseUpdates = false;
   }
