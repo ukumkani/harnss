@@ -3,9 +3,27 @@ import type { Project } from "../types";
 
 export function useProjectManager() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
+  const [projectsLoadError, setProjectsLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    window.claude.projects.list().then(setProjects);
+    let cancelled = false;
+    window.claude.projects.list()
+      .then((list) => {
+        if (cancelled) return;
+        setProjects(list);
+        setProjectsLoadError(null);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setProjectsLoadError(error instanceof Error ? error.message : "Failed to load projects");
+      })
+      .finally(() => {
+        if (!cancelled) setProjectsLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const createProject = useCallback(async (spaceId?: string) => {
@@ -76,6 +94,8 @@ export function useProjectManager() {
 
   return {
     projects,
+    projectsLoaded,
+    projectsLoadError,
     createProject,
     createDevProject,
     deleteProject,
