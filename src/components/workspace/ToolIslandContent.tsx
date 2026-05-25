@@ -140,6 +140,7 @@ export function ToolIslandContent({
           manualFiles={reviewTargetFiles}
           onScrollToToolCall={onScrollToToolCall}
           enabled={true}
+          resolvedTheme={resolvedTheme}
           headerControls={headerControls}
         />
       );

@@ -163,6 +163,8 @@ export const UI_TEXT_ZH_CN: Record<string, string> = {
   "Browser": "浏览器",
   "Source Control": "源代码管理",
   "Open Files": "打开的文件",
+  "Loading file…": "正在加载文件…",
+  "Unable to load file": "无法加载文件",
   "Project Files": "项目文件",
   "Tasks": "任务",
   "Files": "文件",
