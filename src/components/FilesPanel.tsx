@@ -33,6 +33,21 @@ interface FilesPanelProps {
   headerControls?: React.ReactNode;
 }
 
+function compactDisplayPath(filePath: string, cwd?: string): string {
+  const fullPath = filePath.startsWith("/")
+    ? filePath
+    : cwd
+      ? `${cwd.replace(/\/+$/, "")}/${filePath}`
+      : filePath;
+  const normalized = fullPath.replace(/\/+/g, "/");
+  const isAbsolute = normalized.startsWith("/");
+  const parts = normalized.split("/").filter(Boolean);
+
+  if (parts.length <= 5) return `${isAbsolute ? "/" : ""}${parts.join("/")}`;
+
+  return `${isAbsolute ? "/" : ""}${parts.slice(0, 3).join("/")}/.../${parts.slice(-2).join("/")}`;
+}
+
 export const FilesPanel = memo(function FilesPanel({
   sessionId,
   messages,
@@ -202,7 +217,7 @@ export const FilesPanel = memo(function FilesPanel({
     const syntaxStyle = resolvedTheme === "dark" ? oneDark : oneLight;
     return highlightToLines(reviewFile.content, selectedLanguage, syntaxStyle);
   }, [resolvedTheme, reviewFile, selectedLanguage]);
-  const selectedRelativePath = selectedPath ? getRelativePath(selectedPath, cwd) : null;
+  const selectedDisplayPath = selectedPath ? compactDisplayPath(selectedPath, cwd) : "";
 
   const handleClick = useCallback((filePath: string) => {
     setSelectedPath(filePath);
@@ -290,15 +305,11 @@ export const FilesPanel = memo(function FilesPanel({
               <>
                 <div className="flex h-8 shrink-0 items-center gap-2 border-b border-border/50 px-3">
                   <div className="min-w-0 flex-1">
-                    <div className="flex min-w-0 items-baseline gap-2">
-                      <span className="shrink-0 text-xs font-medium text-foreground/80">
-                        {selectedRelativePath?.fileName}
-                      </span>
-                      {selectedRelativePath?.dirPath && (
-                        <span className="min-w-0 truncate text-[10px] text-muted-foreground/45">
-                          {selectedRelativePath.dirPath}
-                        </span>
-                      )}
+                    <div
+                      className="truncate text-xs font-medium text-foreground/70"
+                      title={selectedPath}
+                    >
+                      {selectedDisplayPath}
                     </div>
                   </div>
                   <span className="shrink-0 rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] text-muted-foreground">
