@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   mockAccessSync,
   mockExecFileSync,
+  mockElectronApp,
   mockGetAppSetting,
   mockGetCliPath,
   mockLog,
@@ -10,6 +11,7 @@ const {
 } = vi.hoisted(() => ({
   mockAccessSync: vi.fn(),
   mockExecFileSync: vi.fn(),
+  mockElectronApp: { isPackaged: false },
   mockGetAppSetting: vi.fn<(key: string) => string>((key: string) => {
     if (key === "claudeBinarySource") return "auto";
     if (key === "claudeCustomBinaryPath") return "";
@@ -36,6 +38,10 @@ vi.mock("os", () => ({
 vi.mock("child_process", () => ({
   execFileSync: mockExecFileSync,
   spawn: mockSpawn,
+}));
+
+vi.mock("electron", () => ({
+  app: mockElectronApp,
 }));
 
 vi.mock("../app-settings", () => ({
@@ -67,6 +73,7 @@ describe("claude binary resolution", () => {
     vi.unstubAllEnvs();
     mockAccessSync.mockReset();
     mockExecFileSync.mockReset();
+    mockElectronApp.isPackaged = false;
     mockGetAppSetting.mockReset();
     mockGetAppSetting.mockImplementation((key: string): string => {
       if (key === "claudeBinarySource") return "auto";
@@ -138,6 +145,19 @@ describe("claude binary resolution", () => {
     );
   });
 
+  it("does not use the sdk cli fallback in packaged builds", async () => {
+    mockElectronApp.isPackaged = true;
+    mockExecFileSync.mockImplementation(() => {
+      throw new Error("missing");
+    });
+    allowExecutable("/app.asar.unpacked/node_modules/@anthropic-ai/claude-agent-sdk/cli.js");
+
+    const mod = await loadModule();
+
+    await expect(mod.getClaudeBinaryPath({ installIfMissing: false, allowSdkFallback: true }))
+      .rejects.toThrow("Claude executable not found");
+  });
+
   it("reports status without triggering install", async () => {
     allowExecutable("/Users/tester/.local/bin/claude");
     const mod = await loadModule();
@@ -148,19 +168,17 @@ describe("claude binary resolution", () => {
     });
   });
 
-  it("returns a version when the sdk fallback path is a script", async () => {
+  it("does not read a version through the sdk fallback script", async () => {
     mockExecFileSync.mockImplementation((command: string, args: string[]) => {
-      if (command === process.execPath) {
-        expect(args).toEqual(["/app.asar.unpacked/node_modules/@anthropic-ai/claude-agent-sdk/cli.js", "--version"]);
-        return "2.1.70\n";
-      }
+      void command;
+      void args;
       throw new Error("unexpected");
     });
     allowExecutable("/app.asar.unpacked/node_modules/@anthropic-ai/claude-agent-sdk/cli.js");
 
     const mod = await loadModule();
 
-    await expect(mod.getClaudeVersion()).resolves.toBe("2.1.70");
+    await expect(mod.getClaudeVersion()).resolves.toBeNull();
   });
 
   it("exposes binary metadata for auto-detected paths", async () => {

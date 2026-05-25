@@ -376,10 +376,14 @@ async function revalidateClaudeModelsCache(cwd?: string): Promise<{ models: Arra
 
   modelsRevalidationPromise = (async () => {
     const existing = getClaudeModelsCache();
+    const binary = getClaudeBinaryMetadata({ installIfMissing: false, allowSdkFallback: false });
+    if (!binary) {
+      log("MODELS_CACHE_REVALIDATE_SKIP", "Claude executable not found; using cached models");
+      return { models: existing.models, updatedAt: existing.updatedAt };
+    }
+
     const query = await getSDK();
-    const binary = getClaudeBinaryMetadata({ installIfMissing: false, allowSdkFallback: true });
-    const sdkCliPath = getCliPath();
-    const selectedCliPath = binary?.path;
+    const selectedCliPath = binary.path;
 
     type RevalidationAttempt = {
       cliPath?: string;
@@ -390,20 +394,6 @@ async function revalidateClaudeModelsCache(cwd?: string): Promise<{ models: Arra
       cliPath: selectedCliPath,
       label: binary ? `strategy=${binary.strategy}` : "strategy=unresolved",
     }];
-
-    const shouldRetryWithBundledCli =
-      !!sdkCliPath &&
-      sdkCliPath !== selectedCliPath &&
-      binary?.source === "auto" &&
-      binary.strategy !== "custom" &&
-      binary.strategy !== "sdk-fallback";
-
-    if (shouldRetryWithBundledCli) {
-      attempts.push({
-        cliPath: sdkCliPath,
-        label: "strategy=bundled-retry",
-      });
-    }
 
     let lastError = "";
     for (const [index, attempt] of attempts.entries()) {
