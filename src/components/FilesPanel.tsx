@@ -3,7 +3,6 @@ import { FileText, Loader2, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { PanelHeader } from "@/components/PanelHeader";
 import { RegionSearchOverlay } from "@/components/RegionSearchOverlay";
 import { OpenInEditorButton } from "./OpenInEditorButton";
@@ -36,18 +35,18 @@ interface FilesPanelProps {
 }
 
 function compactDisplayPath(filePath: string, cwd?: string): string {
-  const fullPath = filePath.startsWith("/")
-    ? filePath
-    : cwd
-      ? `${cwd.replace(/\/+$/, "")}/${filePath}`
-      : filePath;
-  const normalized = fullPath.replace(/\/+/g, "/");
-  const isAbsolute = normalized.startsWith("/");
+  const normalized = filePath.replace(/\/+/g, "/");
+  const normalizedCwd = cwd?.replace(/\/+$/, "").replace(/\/+/g, "/");
+  const relativePath = normalizedCwd && normalized.startsWith(`${normalizedCwd}/`)
+    ? normalized.slice(normalizedCwd.length + 1)
+    : normalized;
   const parts = normalized.split("/").filter(Boolean);
+  const relativeParts = relativePath.split("/").filter(Boolean);
+  const displayParts = relativeParts.length > 0 ? relativeParts : parts;
 
-  if (parts.length <= 5) return `${isAbsolute ? "/" : ""}${parts.join("/")}`;
+  if (displayParts.length <= 5) return displayParts.join("/");
 
-  return `${isAbsolute ? "/" : ""}${parts.slice(0, 3).join("/")}/.../${parts.slice(-2).join("/")}`;
+  return `${displayParts.slice(0, 3).join("/")}/.../${displayParts.slice(-2).join("/")}`;
 }
 
 export const FilesPanel = memo(function FilesPanel({
@@ -339,7 +338,7 @@ export const FilesPanel = memo(function FilesPanel({
                   <div className="min-w-0 flex-1">
                     <div
                       className="truncate text-xs font-medium text-muted-foreground/50"
-                      title={selectedPath}
+                      title={selectedDisplayPath}
                     >
                       {selectedDisplayPath}
                     </div>
@@ -362,7 +361,7 @@ export const FilesPanel = memo(function FilesPanel({
                       </p>
                     </div>
                   ) : (
-                    <ScrollArea className="h-full">
+                    <div className="h-full overflow-auto">
                       {selectedLanguage === "markdown" ? (
                         <div className="prose dark:prose-invert prose-sm max-w-none p-4 text-foreground/80 wrap-break-word">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -381,7 +380,7 @@ export const FilesPanel = memo(function FilesPanel({
                           ))}
                         </pre>
                       )}
-                    </ScrollArea>
+                    </div>
                   )}
                 </div>
               </>

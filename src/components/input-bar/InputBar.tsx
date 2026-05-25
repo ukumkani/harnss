@@ -185,13 +185,15 @@ export const InputBar = memo(function InputBar({
     event.preventDefault();
     const startY = event.clientY;
     const startHeight = editable.getBoundingClientRect().height;
+    const dragWindowHeight = window.innerHeight;
+    const minHeight = dragWindowHeight * 0.05;
+    const maxHeight = dragWindowHeight * 0.5;
 
     const handleMove = (moveEvent: MouseEvent) => {
       const delta = startY - moveEvent.clientY;
-      const minHeight = window.innerHeight * 0.1;
-      const maxHeight = window.innerHeight * 0.3;
       const next = Math.max(minHeight, Math.min(maxHeight, startHeight + delta));
       setComposerHeight(next);
+      window.dispatchEvent(new Event("chat-composer-resize"));
     };
 
     const handleUp = () => {
