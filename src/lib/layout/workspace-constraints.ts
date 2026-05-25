@@ -1,4 +1,4 @@
-import { MIN_TOOLS_PANEL_WIDTH, SPLIT_HANDLE_WIDTH } from "@/lib/layout/constants";
+import { MIN_TOOLS_PANEL_WIDTH, SPLIT_HANDLE_WIDTH, getMinLayoutItemSizePx } from "@/lib/layout/constants";
 
 export type ChatPaneLayoutMode = "single" | "split";
 export type TopRowLayoutItemKind = "chat" | "tool-column";
@@ -14,7 +14,11 @@ export function getChatPaneMinWidthPx(mode: ChatPaneLayoutMode): number {
 export function getTopRowItemMinWidthPx(
   itemKind: TopRowLayoutItemKind,
   chatMode: ChatPaneLayoutMode,
+  containerWidth?: number,
 ): number {
+  if (containerWidth != null && Number.isFinite(containerWidth) && containerWidth > 0) {
+    return getMinLayoutItemSizePx(containerWidth);
+  }
   return itemKind === "chat" ? getChatPaneMinWidthPx(chatMode) : MIN_TOOLS_PANEL_WIDTH;
 }
 
@@ -44,8 +48,9 @@ export function canFitTopRowLayout(
 export function buildMinimumWidthArray(
   itemKinds: readonly TopRowLayoutItemKind[],
   chatMode: ChatPaneLayoutMode,
+  containerWidth?: number,
 ): number[] {
-  return itemKinds.map((itemKind) => getTopRowItemMinWidthPx(itemKind, chatMode));
+  return itemKinds.map((itemKind) => getTopRowItemMinWidthPx(itemKind, chatMode, containerWidth));
 }
 
 export function buildConstrainedFractionsFromMinimums(
@@ -61,7 +66,7 @@ export function buildConstrainedFractionsFromMinimums(
   const contentWidth = Math.max(0, containerWidth - totalHandleWidth);
   if (contentWidth <= 0) return null;
 
-  const minimumWidths = buildMinimumWidthArray(itemKinds, chatMode);
+  const minimumWidths = buildMinimumWidthArray(itemKinds, chatMode, contentWidth);
   const minimumContentWidth = minimumWidths.reduce((sum, width) => sum + width, 0);
   if (minimumContentWidth > contentWidth) return null;
 

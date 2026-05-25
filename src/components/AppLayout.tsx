@@ -66,14 +66,13 @@ import {
 } from "@/hooks/useMainToolWorkspace";
 import type { PanelToolId } from "@/types";
 import {
-  MIN_TOOLS_PANEL_WIDTH,
   SPLIT_HANDLE_WIDTH,
+  getMinLayoutItemSizePx,
 } from "@/lib/layout/constants";
 import { getAppMinimumWidth, getMaxVisibleSplitPaneCount } from "@/lib/layout/split-layout";
 import {
   buildConstrainedFractionsFromMinimums,
   canFitTopRowLayout,
-  getChatPaneMinWidthPx,
   type TopRowLayoutItemKind,
 } from "@/lib/layout/workspace-constraints";
 import {
@@ -276,7 +275,7 @@ export function AppLayout() {
     widthFractions: splitView.widthFractions,
     setWidthFractions: splitView.setWidthFractions,
     containerRef: splitContainerRef,
-    minWidthsPx: splitView.topRowItems.map((item) => item.kind === "chat" ? getChatPaneMinWidthPx("split") : MIN_TOOLS_PANEL_WIDTH),
+    minWidthsPx: splitView.topRowItems.map(() => getMinLayoutItemSizePx(availableSplitWidth)),
     handleWidthPx: SPLIT_HANDLE_WIDTH,
   });
 
@@ -296,7 +295,7 @@ export function AppLayout() {
     widthFractions: mainToolWorkspace.bottomWidthFractions,
     setWidthFractions: mainToolWorkspace.setBottomWidthFractions,
     containerRef: mainBottomRowRef,
-    minWidthsPx: mainToolWorkspace.bottomToolIslands.map(() => MIN_TOOLS_PANEL_WIDTH),
+    minWidthsPx: mainToolWorkspace.bottomToolIslands.map(() => getMinLayoutItemSizePx(mainCombinedWorkspaceWidthRef.current)),
     handleWidthPx: SPLIT_HANDLE_WIDTH,
   });
 
@@ -655,7 +654,7 @@ export function AppLayout() {
     widthFractions: splitView.bottomWidthFractions,
     setWidthFractions: splitView.setBottomWidthFractions,
     containerRef: splitBottomRowRef,
-    minWidthsPx: splitBottomToolIslands.map(() => MIN_TOOLS_PANEL_WIDTH),
+    minWidthsPx: splitBottomToolIslands.map(() => getMinLayoutItemSizePx(availableSplitWidth)),
     handleWidthPx: SPLIT_HANDLE_WIDTH,
   });
   const splitBottomHeightResize = useBottomHeightResize(splitView.bottomHeight, splitView.setBottomHeight);
@@ -832,9 +831,9 @@ export function AppLayout() {
     const { widthPercent, handleSharePx } = getPreviewPaneMetrics(singlePanePreviewPosition);
     return {
       width: `calc(${widthPercent}% - ${handleSharePx}px)`,
-      minWidth: getChatPaneMinWidthPx("split"),
+      minWidth: getMinLayoutItemSizePx(availableSplitWidth),
     } as React.CSSProperties;
-  }, [getPreviewPaneMetrics, singlePanePreviewPosition]);
+  }, [availableSplitWidth, getPreviewPaneMetrics, singlePanePreviewPosition]);
 
   // ── Pane controller context (shared between active pane and split panes) ──
   const paneControllerCtx = useMemo<PaneControllerContext>(() => ({
@@ -1157,12 +1156,12 @@ export function AppLayout() {
                     const dropZoneMetrics = getPreviewPaneMetrics(dropZonePreviewIndex);
                     const dropZoneStyle = {
                       width: `calc(${dropZoneMetrics.widthPercent}% - ${dropZoneMetrics.handleSharePx}px + ${SPLIT_HANDLE_WIDTH}px)`,
-                      minWidth: getChatPaneMinWidthPx("split"),
+                      minWidth: getMinLayoutItemSizePx(availableSplitWidth),
                     } as React.CSSProperties;
                     const previewPaneMetrics = getPreviewPaneMetrics(displayIndex);
                     const previewPaneStyle = {
                       width: `calc(${previewPaneMetrics.widthPercent}% - ${previewPaneMetrics.handleSharePx}px)`,
-                      minWidth: MIN_TOOLS_PANEL_WIDTH,
+                      minWidth: getMinLayoutItemSizePx(availableSplitWidth),
                     } as React.CSSProperties;
                     const insertBeforeIndex = topRowRenderEntries
                       .slice(0, displayIndex)

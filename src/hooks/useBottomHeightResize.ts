@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import {
   MAX_BOTTOM_TOOLS_HEIGHT,
   MIN_BOTTOM_TOOLS_HEIGHT,
+  getMinLayoutItemSizePx,
 } from "@/lib/layout/constants";
 
 /**
@@ -28,7 +29,9 @@ export function useBottomHeightResize(
 
     const handleMove = (moveEvent: MouseEvent) => {
       const delta = startY - moveEvent.clientY;
-      const next = Math.max(MIN_BOTTOM_TOOLS_HEIGHT, Math.min(MAX_BOTTOM_TOOLS_HEIGHT, startHeight + delta));
+      const minHeight = Math.max(MIN_BOTTOM_TOOLS_HEIGHT, getMinLayoutItemSizePx(window.innerHeight));
+      const maxHeight = Math.max(minHeight, Math.min(MAX_BOTTOM_TOOLS_HEIGHT, window.innerHeight - minHeight));
+      const next = Math.max(minHeight, Math.min(maxHeight, startHeight + delta));
       setBottomHeight(next);
     };
 
