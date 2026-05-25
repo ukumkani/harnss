@@ -265,8 +265,8 @@ export const FilesPanel = memo(function FilesPanel({
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          <ScrollArea className="shrink-0 border-b border-border/50">
-            <div className="flex min-w-max items-center gap-1 px-2 py-1">
+          <div className="shrink-0 overflow-x-auto overflow-y-hidden border-b border-border/50 [scrollbar-width:thin]">
+            <div className="flex w-max items-center gap-1 px-2 py-1">
               {files.map((file) => {
                 const { fileName } = getRelativePath(file.path, cwd);
                 const isSelected = file.path === selectedPath;
@@ -303,7 +303,7 @@ export const FilesPanel = memo(function FilesPanel({
                 );
               })}
             </div>
-          </ScrollArea>
+          </div>
 
           <div className="flex min-w-0 flex-1 flex-col">
             {selectedPath ? (
