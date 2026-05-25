@@ -182,6 +182,7 @@ export const UI_TEXT_ZH_CN: Record<string, string> = {
   "Restarting...": "正在重启...",
   "Update": "更新",
   "Restart": "重启",
+  "Resize composer": "调整输入框高度",
   "Cancel": "取消",
   "Save": "保存",
   "Delete": "删除",

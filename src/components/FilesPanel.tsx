@@ -33,6 +33,21 @@ interface FilesPanelProps {
   headerControls?: React.ReactNode;
 }
 
+function compactDisplayPath(filePath: string, cwd?: string): string {
+  const fullPath = filePath.startsWith("/")
+    ? filePath
+    : cwd
+      ? `${cwd.replace(/\/+$/, "")}/${filePath}`
+      : filePath;
+  const normalized = fullPath.replace(/\/+/g, "/");
+  const isAbsolute = normalized.startsWith("/");
+  const parts = normalized.split("/").filter(Boolean);
+
+  if (parts.length <= 5) return `${isAbsolute ? "/" : ""}${parts.join("/")}`;
+
+  return `${isAbsolute ? "/" : ""}${parts.slice(0, 3).join("/")}/.../${parts.slice(-2).join("/")}`;
+}
+
 export const FilesPanel = memo(function FilesPanel({
   sessionId,
   messages,
@@ -132,6 +147,11 @@ export const FilesPanel = memo(function FilesPanel({
     });
   }, [manualFiles]);
 
+  const latestManualFile = manualFiles[0];
+  useEffect(() => {
+    if (latestManualFile) setSelectedPath(latestManualFile);
+  }, [latestManualFile]);
+
   const files = useMemo(() => {
     const derivedFiles = data?.files ?? [];
     if (manualFiles.length === 0) {
@@ -202,7 +222,7 @@ export const FilesPanel = memo(function FilesPanel({
     const syntaxStyle = resolvedTheme === "dark" ? oneDark : oneLight;
     return highlightToLines(reviewFile.content, selectedLanguage, syntaxStyle);
   }, [resolvedTheme, reviewFile, selectedLanguage]);
-  const selectedRelativePath = selectedPath ? getRelativePath(selectedPath, cwd) : null;
+  const selectedDisplayPath = selectedPath ? compactDisplayPath(selectedPath, cwd) : "";
 
   const handleClick = useCallback((filePath: string) => {
     setSelectedPath(filePath);
@@ -245,8 +265,8 @@ export const FilesPanel = memo(function FilesPanel({
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          <ScrollArea className="shrink-0 border-b border-border/50">
-            <div className="flex min-w-max items-center gap-1 px-2 py-1">
+          <div className="shrink-0 overflow-x-auto overflow-y-hidden border-b border-border/50 [scrollbar-width:thin]">
+            <div className="flex w-max items-center gap-1 px-2 py-1">
               {files.map((file) => {
                 const { fileName } = getRelativePath(file.path, cwd);
                 const isSelected = file.path === selectedPath;
@@ -283,27 +303,20 @@ export const FilesPanel = memo(function FilesPanel({
                 );
               })}
             </div>
-          </ScrollArea>
+          </div>
 
           <div className="flex min-w-0 flex-1 flex-col">
             {selectedPath ? (
               <>
                 <div className="flex h-8 shrink-0 items-center gap-2 border-b border-border/50 px-3">
                   <div className="min-w-0 flex-1">
-                    <div className="flex min-w-0 items-baseline gap-2">
-                      <span className="shrink-0 text-xs font-medium text-foreground/80">
-                        {selectedRelativePath?.fileName}
-                      </span>
-                      {selectedRelativePath?.dirPath && (
-                        <span className="min-w-0 truncate text-[10px] text-muted-foreground/45">
-                          {selectedRelativePath.dirPath}
-                        </span>
-                      )}
+                    <div
+                      className="truncate text-xs font-medium text-muted-foreground/50"
+                      title={selectedPath}
+                    >
+                      {selectedDisplayPath}
                     </div>
                   </div>
-                  <span className="shrink-0 rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                    {selectedLanguage}
-                  </span>
                   <OpenInEditorButton filePath={selectedPath} />
                 </div>
                 {reviewFile?.loading ? (
