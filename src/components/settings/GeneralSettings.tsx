@@ -27,7 +27,7 @@ export const GeneralSettings = memo(function GeneralSettings({
   const [voiceDictation, setVoiceDictation] = useState<VoiceDictationMode>("native");
   const [selectedLanguage, setSelectedLanguage] = useState<AppLanguage>(language);
   const [appFontFamily, setAppFontFamily] = useState<AppFontFamily>("system");
-  const [appBodyFontSize, setAppBodyFontSize] = useState(11);
+  const [appBodyFontSize, setAppBodyFontSize] = useState(12);
 
   useEffect(() => {
     if (appSettings) {
@@ -38,7 +38,8 @@ export const GeneralSettings = memo(function GeneralSettings({
       setVoiceDictation(appSettings.voiceDictation || "native");
       setSelectedLanguage(appSettings.language || DEFAULT_LANGUAGE);
       setAppFontFamily(appSettings.appFontFamily || "system");
-      setAppBodyFontSize(Math.max(10, appSettings.appBodyFontSize || 11));
+      const nextFontSize = appSettings.appBodyFontSize || 12;
+      setAppBodyFontSize(nextFontSize >= 10 && nextFontSize <= 30 ? nextFontSize : 12);
     }
   }, [appSettings]);
 
@@ -107,7 +108,7 @@ export const GeneralSettings = memo(function GeneralSettings({
 
   const handleFontSizeChange = useCallback(
     async (value: number) => {
-      const next = Math.max(10, value);
+      const next = Number.isFinite(value) && value >= 10 && value <= 30 ? value : 12;
       setAppBodyFontSize(next);
       await onUpdateAppSettings({ appBodyFontSize: next });
     },
@@ -160,11 +161,12 @@ export const GeneralSettings = memo(function GeneralSettings({
               <input
                 type="number"
                 min={10}
-                step={1}
+                max={30}
+                step="any"
                 value={appBodyFontSize}
                 onChange={(event) => {
                   const next = Number(event.target.value);
-                  setAppBodyFontSize(Number.isFinite(next) ? Math.max(10, next) : 10);
+                  setAppBodyFontSize(Number.isFinite(next) ? next : 12);
                 }}
                 onBlur={(event) => {
                   void handleFontSizeChange(Number(event.target.value));
