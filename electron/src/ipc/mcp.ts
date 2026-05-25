@@ -1,5 +1,6 @@
 import { ipcMain } from "electron";
-import { execFileSync } from "child_process";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import { loadMcpServers, addMcpServer, removeMcpServer } from "../lib/mcp-store";
 import { authenticateMcpServer } from "../lib/mcp-oauth-flow";
 import { loadOAuthData, deleteOAuthData } from "../lib/mcp-oauth-store";
@@ -13,6 +14,8 @@ interface ProbeResult {
   status: "connected" | "needs-auth" | "failed";
   error?: string;
 }
+
+const execFileAsync = promisify(execFile);
 
 async function probeHttpServer(server: McpServerConfig): Promise<ProbeResult> {
   if (!server.url) return { name: server.name, status: "failed", error: "No URL configured" };
@@ -102,12 +105,12 @@ async function probeSseServer(server: McpServerConfig): Promise<ProbeResult> {
   }
 }
 
-function probeStdioServer(server: McpServerConfig): ProbeResult {
+async function probeStdioServer(server: McpServerConfig): Promise<ProbeResult> {
   const cmd = server.command;
   if (!cmd) return { name: server.name, status: "failed", error: "No command configured" };
 
   try {
-    execFileSync("/usr/bin/which", [cmd], { stdio: "ignore", timeout: 3000 });
+    await execFileAsync("/usr/bin/which", [cmd], { timeout: 3000 });
     return { name: server.name, status: "connected" };
   } catch {
     // Binary not found on PATH — still might work if it's an npx/bunx invocation
@@ -182,7 +185,7 @@ export function register(): void {
           switch (server.transport) {
             case "http": return await probeHttpServer(server);
             case "sse": return await probeSseServer(server);
-            case "stdio": return probeStdioServer(server);
+            case "stdio": return await probeStdioServer(server);
             default: return { name: server.name, status: "failed" as const, error: `Unknown transport: ${server.transport}` };
           }
         } catch (err) {

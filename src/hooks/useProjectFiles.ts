@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buildFileTree, type FileTreeNode } from "@/lib/file-tree";
 import { captureException } from "@/lib/analytics/analytics";
+import { runWorkerTask, terminateWorker } from "@/lib/worker-request";
 
 interface UseProjectFilesReturn {
   tree: FileTreeNode[] | null;
@@ -25,6 +26,7 @@ export function useProjectFiles(
   // Track the latest fetch to avoid stale responses
   const fetchIdRef = useRef(0);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const fileTreeWorkerRef = useRef<Worker | null>(null);
 
   const fetchFiles = useCallback(async (dir: string) => {
     const id = ++fetchIdRef.current;
@@ -35,7 +37,18 @@ export function useProjectFiles(
       const result = await window.claude.files.listAll(dir);
       // Guard against stale response (cwd changed while fetching)
       if (id !== fetchIdRef.current) return;
-      setTree(buildFileTree(result.files));
+      let nextTree: FileTreeNode[];
+      try {
+        nextTree = await runWorkerTask<{ files: string[] }, FileTreeNode[]>(
+          fileTreeWorkerRef,
+          () => new Worker(new URL("../workers/file-tree.worker.ts", import.meta.url), { type: "module" }),
+          { files: result.files },
+        );
+      } catch {
+        nextTree = buildFileTree(result.files);
+      }
+      if (id !== fetchIdRef.current) return;
+      setTree(nextTree);
     } catch (err) {
       if (id !== fetchIdRef.current) return;
       captureException(err instanceof Error ? err : new Error(String(err)), { label: "FILE_LIST_ERR" });
@@ -46,6 +59,10 @@ export function useProjectFiles(
         setLoading(false);
       }
     }
+  }, []);
+
+  useEffect(() => {
+    return () => terminateWorker(fileTreeWorkerRef);
   }, []);
 
   useEffect(() => {

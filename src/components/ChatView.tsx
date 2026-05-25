@@ -860,7 +860,7 @@ function ChatViewContent({
       <div
         ref={searchScopeRef}
         tabIndex={-1}
-        className="relative min-h-0 flex-1 outline-none"
+        className="window-body-content relative min-h-0 flex-1 outline-none"
         onKeyDownCapture={regionSearch.handleKeyDownCapture}
         onPointerDownCapture={(event) => {
           if (!isEditableSearchTarget(event.target)) {
