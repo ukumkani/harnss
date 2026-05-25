@@ -188,7 +188,9 @@ export const InputBar = memo(function InputBar({
 
     const handleMove = (moveEvent: MouseEvent) => {
       const delta = startY - moveEvent.clientY;
-      const next = Math.max(48, Math.min(360, startHeight + delta));
+      const minHeight = window.innerHeight * 0.1;
+      const maxHeight = window.innerHeight * 0.3;
+      const next = Math.max(minHeight, Math.min(maxHeight, startHeight + delta));
       setComposerHeight(next);
     };
 
