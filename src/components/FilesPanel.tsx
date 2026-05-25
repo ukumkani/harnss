@@ -147,6 +147,11 @@ export const FilesPanel = memo(function FilesPanel({
     });
   }, [manualFiles]);
 
+  const latestManualFile = manualFiles[0];
+  useEffect(() => {
+    if (latestManualFile) setSelectedPath(latestManualFile);
+  }, [latestManualFile]);
+
   const files = useMemo(() => {
     const derivedFiles = data?.files ?? [];
     if (manualFiles.length === 0) {
