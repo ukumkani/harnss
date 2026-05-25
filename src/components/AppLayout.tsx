@@ -91,7 +91,7 @@ export function AppLayout() {
   } = agentState;
   const {
     activeProjectId, activeProjectPath, activeSpaceProject, activeSpaceTerminalCwd, showThinking,
-    hasProjects, isSpaceSwitching, showToolPicker, hasRightPanel,
+    hasProjects, projectsLoaded, projectsLoadError, isSpaceSwitching, showToolPicker, hasRightPanel,
     activeTodos, bgAgents, hasTodos, hasAgents, availableContextual,
     glassSupported, macLiquidGlassSupported, liveMacBackgroundEffect, devFillEnabled, jiraBoardEnabled,
     draftSpaceId,
@@ -127,6 +127,7 @@ export function AppLayout() {
   const { isLightGlass, isNativeGlass, chatFadeStrength, titlebarSurfaceColor, topFadeBackground, bottomFadeBackground } = glassTheme;
   const layoutUI = useAppLayoutUIState({
     isNativeGlass,
+    hasProjects,
     onHideSettings: () => setShowSettings(false),
   });
   const {
@@ -1791,7 +1792,7 @@ export function AppLayout() {
         onClose={handleClosePreview}
       />
       {/* Welcome wizard — full-screen overlay on first run */}
-      {!welcomeCompleted && (
+      {projectsLoaded && !projectsLoadError && !hasProjects && !welcomeCompleted && (
         <WelcomeWizard
           glassSupported={glassSupported}
           permissionMode={settings.permissionMode}
