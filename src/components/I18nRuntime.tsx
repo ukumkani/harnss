@@ -4,13 +4,23 @@ import type { AppLanguage } from "@/types";
 
 const textOriginals = new WeakMap<Text, string>();
 const TRANSLATED_ATTRS = ["placeholder", "title", "aria-label"] as const;
-const SKIP_SELECTOR = [
+const TEXT_SKIP_SELECTOR = [
   "script",
   "style",
   "pre",
   "code",
   "textarea",
   "input",
+  "[contenteditable='true']",
+  "[data-chat-message]",
+  ".prose",
+].join(",");
+const ATTRIBUTE_SKIP_SELECTOR = [
+  "script",
+  "style",
+  "pre",
+  "code",
+  "textarea",
   "[contenteditable='true']",
   "[data-chat-message]",
   ".prose",
@@ -29,7 +39,7 @@ function restoreTextNode(node: Text): string {
 
 function translateTextNode(node: Text, language: AppLanguage): void {
   const parent = node.parentElement;
-  if (!parent || parent.closest(SKIP_SELECTOR)) return;
+  if (!parent || parent.closest(TEXT_SKIP_SELECTOR)) return;
 
   const original = restoreTextNode(node);
   const trimmed = original.trim();
@@ -54,7 +64,7 @@ function getOriginalAttribute(element: Element, attr: typeof TRANSLATED_ATTRS[nu
 }
 
 function translateAttributes(element: Element, language: AppLanguage): void {
-  if (element.closest(SKIP_SELECTOR)) return;
+  if (element.closest(ATTRIBUTE_SKIP_SELECTOR)) return;
 
   for (const attr of TRANSLATED_ATTRS) {
     const original = getOriginalAttribute(element, attr);
