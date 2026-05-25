@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/AppLayout";
+import { I18nRuntime } from "@/components/I18nRuntime";
 import { syncAnalyticsSettings } from "@/lib/analytics/posthog";
 
 export function App() {
@@ -20,6 +21,7 @@ export function App() {
 
   return (
     <TooltipProvider>
+      <I18nRuntime />
       <AppLayout />
       <Toaster
         position="top-right"
