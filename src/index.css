@@ -77,8 +77,8 @@
 
 :root {
   --app-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --app-body-font-size: 11px;
-  --app-body-line-height: 15px;
+  --app-body-font-size: 12px;
+  --app-body-line-height: 17px;
   --space-hue: 0;
   --space-chroma: 0;
   --radius: 0.625rem;

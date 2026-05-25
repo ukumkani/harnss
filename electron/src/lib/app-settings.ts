@@ -31,7 +31,7 @@ const DEFAULTS: AppSettings = {
   voiceDictation: "native",
   language: "en",
   appFontFamily: "system",
-  appBodyFontSize: 11,
+  appBodyFontSize: 12,
   notifications: NOTIFICATION_DEFAULTS,
   codexClientName: "Harnss",
   codexBinarySource: "auto",
@@ -48,14 +48,13 @@ const VALID_APP_FONT_FAMILIES: AppFontFamily[] = ["system", "arial", "helvetica"
 
 function normalizeAppSettings(settings: AppSettings): AppSettings {
   const appBodyFontSize = Number(settings.appBodyFontSize);
+  const validAppBodyFontSize = Number.isFinite(appBodyFontSize) && appBodyFontSize >= 10 && appBodyFontSize <= 30;
   return {
     ...settings,
     appFontFamily: VALID_APP_FONT_FAMILIES.includes(settings.appFontFamily)
       ? settings.appFontFamily
       : DEFAULTS.appFontFamily,
-    appBodyFontSize: Number.isFinite(appBodyFontSize)
-      ? Math.max(10, appBodyFontSize)
-      : DEFAULTS.appBodyFontSize,
+    appBodyFontSize: validAppBodyFontSize ? appBodyFontSize : DEFAULTS.appBodyFontSize,
   };
 }
 

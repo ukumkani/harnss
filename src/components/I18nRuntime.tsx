@@ -43,7 +43,10 @@ function getBodyLineHeight(fontSize: number): number {
 }
 
 function applyTypographySettings(settings: AppSettings): void {
-  const fontSize = Math.max(10, Number(settings.appBodyFontSize) || 11);
+  const configuredFontSize = Number(settings.appBodyFontSize);
+  const fontSize = Number.isFinite(configuredFontSize) && configuredFontSize >= 10 && configuredFontSize <= 30
+    ? configuredFontSize
+    : 12;
   const rootStyle = document.documentElement.style;
   rootStyle.setProperty("--app-font-family", getFontFamilyCss(settings.appFontFamily));
   rootStyle.setProperty("--app-body-font-size", `${fontSize}px`);
