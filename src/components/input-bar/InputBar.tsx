@@ -2,6 +2,7 @@ import {
   useState,
   useRef,
   useCallback,
+  useEffect,
   useMemo,
   memo,
   type KeyboardEvent,
@@ -34,7 +35,7 @@ import type {
   EngineId,
   SlashCommand,
 } from "@/types";
-import { BOTTOM_CHAT_MAX_WIDTH_CLASS } from "@/lib/layout/constants";
+import { BOTTOM_CHAT_MAX_WIDTH_CLASS, CHAT_CONTENT_RESIZED_EVENT } from "@/lib/layout/constants";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { resolveModelValue } from "@/lib/model-utils";
 import { ImageAnnotationEditor } from "@/components/ImageAnnotationEditor";
@@ -57,6 +58,26 @@ import { MentionPicker } from "./MentionPicker";
 import { useMentionAutocomplete } from "./useMentionAutocomplete";
 import { CommandPicker } from "./CommandPicker";
 import { useCommandAutocomplete } from "./CommandPicker";
+
+const MIN_COMPOSER_HEIGHT_RATIO = 0.05;
+const MAX_COMPOSER_HEIGHT_RATIO = 0.5;
+
+function getWindowComposerHeight(ratio: number): number | null {
+  if (typeof window === "undefined") return null;
+  const height = window.innerHeight;
+  if (height <= 0) return null;
+  const clampedRatio = Math.max(MIN_COMPOSER_HEIGHT_RATIO, Math.min(MAX_COMPOSER_HEIGHT_RATIO, ratio));
+  return height * clampedRatio;
+}
+
+function dispatchComposerLayoutResize(includeWindowResize = false): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("chat-composer-resize"));
+  window.dispatchEvent(new Event(CHAT_CONTENT_RESIZED_EVENT));
+  if (includeWindowResize) {
+    window.dispatchEvent(new Event("resize"));
+  }
+}
 
 export interface InputBarProps {
   onSend: (text: string, images?: ImageAttachment[], displayText?: string) => void;
@@ -158,7 +179,10 @@ export const InputBar = memo(function InputBar({
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [editingAttachment, setEditingAttachment] = useState<ImageAttachment | null>(null);
-  const [composerHeight, setComposerHeight] = useState<number | null>(null);
+  const [composerHeight, setComposerHeight] = useState<number | null>(() =>
+    getWindowComposerHeight(MIN_COMPOSER_HEIGHT_RATIO),
+  );
+  const composerHeightRatioRef = useRef(MIN_COMPOSER_HEIGHT_RATIO);
 
   // Deep folder confirmation
   const [showDeepFolderConfirm, setShowDeepFolderConfirm] = useState(false);
@@ -179,6 +203,23 @@ export const InputBar = memo(function InputBar({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasContentRef = useRef(false);
 
+  useEffect(() => {
+    const handleWindowResize = () => {
+      const nextHeight = getWindowComposerHeight(composerHeightRatioRef.current);
+      if (nextHeight == null) return;
+      setComposerHeight(nextHeight);
+      requestAnimationFrame(() => {
+        dispatchComposerLayoutResize();
+      });
+    };
+
+    window.addEventListener("resize", handleWindowResize);
+    handleWindowResize();
+    return () => {
+      window.removeEventListener("resize", handleWindowResize);
+    };
+  }, []);
+
   const handleResizeStart = useCallback((event: React.MouseEvent) => {
     const editable = editableRef.current;
     if (!editable) return;
@@ -191,16 +232,21 @@ export const InputBar = memo(function InputBar({
     const maxHeight = dragWindowHeight * 0.5;
     let frameId: number | null = null;
     let pendingHeight = startHeight;
+    let pendingRatio = composerHeightRatioRef.current;
 
     const applyHeight = () => {
       frameId = null;
+      composerHeightRatioRef.current = pendingRatio;
       flushSync(() => setComposerHeight(pendingHeight));
-      window.dispatchEvent(new Event("chat-composer-resize"));
+      dispatchComposerLayoutResize(true);
     };
 
     const handleMove = (moveEvent: MouseEvent) => {
       const delta = startY - moveEvent.clientY;
       pendingHeight = Math.max(minHeight, Math.min(maxHeight, startHeight + delta));
+      pendingRatio = dragWindowHeight > 0
+        ? Math.max(MIN_COMPOSER_HEIGHT_RATIO, Math.min(MAX_COMPOSER_HEIGHT_RATIO, pendingHeight / dragWindowHeight))
+        : MIN_COMPOSER_HEIGHT_RATIO;
       if (frameId == null) {
         frameId = requestAnimationFrame(applyHeight);
       }
@@ -219,6 +265,7 @@ export const InputBar = memo(function InputBar({
 
     document.body.style.cursor = "row-resize";
     document.body.style.userSelect = "none";
+    dispatchComposerLayoutResize(true);
     document.addEventListener("mousemove", handleMove);
     document.addEventListener("mouseup", handleUp);
   }, []);
