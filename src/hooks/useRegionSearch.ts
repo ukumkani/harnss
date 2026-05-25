@@ -117,7 +117,7 @@ function applyCssHighlights(root: HTMLElement, highlightName: string, ranges: Ra
     style.id = REGION_SEARCH_STYLE_ID;
     style.textContent = `
       ::highlight(${REGION_SEARCH_HIGHLIGHT_NAME}) {
-        background-color: color-mix(in oklab, #facc15 42%, transparent);
+        background-color: color-mix(in oklab, #3ddc84 45%, transparent);
         color: inherit;
       }
     `;

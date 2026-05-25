@@ -261,7 +261,11 @@ function SplitChatPaneInner({
           />
           <div
             className={`pointer-events-none absolute inset-x-0 bottom-0 z-[5] transition-opacity duration-200 ${isIsland ? "h-24" : "h-28"}`}
-            style={{ opacity: chatFadeStrength, background: bottomFadeBackground }}
+            style={{
+              bottom: "var(--chat-composer-inset, 0px)",
+              opacity: chatFadeStrength,
+              background: bottomFadeBackground,
+            }}
           />
           <div data-chat-composer className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
             <BottomComposer

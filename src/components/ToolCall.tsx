@@ -175,14 +175,14 @@ const RegularTool = memo(function RegularTool({
   );
 
   const trigger = isPlanTool ? (
-    <div className="relative flex w-full items-center gap-2 py-1 text-start text-[13px] leading-4 text-muted-foreground overflow-hidden">
+    <div className="relative flex w-full items-center gap-2 py-1 text-start text-sm leading-4 text-muted-foreground overflow-hidden">
       {triggerContent}
     </div>
   ) : (
     <button
       type="button"
       onClick={() => handleOpenChange(!expanded)}
-      className="group relative flex w-full items-center gap-2 py-1 text-start text-[13px] leading-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer overflow-hidden"
+      className="group relative flex w-full items-center gap-2 py-1 text-start text-sm leading-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer overflow-hidden"
       aria-expanded={expanded}
     >
       {triggerContent}

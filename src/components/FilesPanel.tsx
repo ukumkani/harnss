@@ -369,7 +369,7 @@ export const FilesPanel = memo(function FilesPanel({
                           </ReactMarkdown>
                         </div>
                       ) : (
-                        <pre className="m-0 min-w-max p-3 font-mono text-[11px] leading-5 text-foreground/85">
+                        <pre className="m-0 min-w-max p-3 font-mono text-sm leading-5 text-foreground/85">
                           {highlightedLines.map((line, index) => (
                             <div key={index} className="flex min-h-5">
                               <span className="w-10 shrink-0 select-none pr-3 text-right tabular-nums text-muted-foreground/35">
