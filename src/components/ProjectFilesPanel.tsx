@@ -80,7 +80,7 @@ function dirname(p: string): string {
 interface ProjectFilesPanelProps {
   cwd?: string;
   enabled: boolean;
-  onPreviewFile?: (filePath: string, sourceRect: DOMRect) => void;
+  onOpenFile?: (filePath: string) => void;
   headerControls?: React.ReactNode;
 }
 
@@ -89,7 +89,7 @@ interface ProjectFilesPanelProps {
 export const ProjectFilesPanel = memo(function ProjectFilesPanel({
   cwd,
   enabled,
-  onPreviewFile,
+  onOpenFile,
   headerControls,
 }: ProjectFilesPanelProps) {
   const { tree, loading, error, refresh } = useProjectFiles(cwd, enabled);
@@ -143,15 +143,12 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
     });
   }, []);
 
-  // Handle file row click
-  const handleFileClick = useCallback(
-    (node: FileTreeNode, event: React.MouseEvent<HTMLDivElement>) => {
-      if (!cwd || !onPreviewFile) return;
-      const rect = event.currentTarget.getBoundingClientRect();
-      const absolutePath = `${cwd}/${node.path}`;
-      onPreviewFile(absolutePath, rect);
+  const handleFileOpen = useCallback(
+    (node: FileTreeNode) => {
+      if (!cwd || !onOpenFile) return;
+      onOpenFile(`${cwd}/${node.path}`);
     },
-    [cwd, onPreviewFile],
+    [cwd, onOpenFile],
   );
 
   // Start inline creation under a directory
@@ -269,7 +266,7 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
               isExpanded={item.isExpanded}
               cwd={cwd}
               onToggleDir={toggleDir}
-              onFileClick={handleFileClick}
+              onFileOpen={handleFileOpen}
               onRefresh={refresh}
               onStartCreate={handleStartCreate}
               creatingUnder={
@@ -368,7 +365,7 @@ interface FileTreeRowProps {
   isExpanded: boolean;
   cwd: string;
   onToggleDir: (path: string) => void;
-  onFileClick: (node: FileTreeNode, event: React.MouseEvent<HTMLDivElement>) => void;
+  onFileOpen: (node: FileTreeNode) => void;
   onRefresh: () => void;
   onStartCreate: (parentDir: string, type: "file" | "folder") => void;
   creatingUnder: "file" | "folder" | null;
@@ -382,7 +379,7 @@ const FileTreeRow = memo(function FileTreeRow({
   isExpanded,
   cwd,
   onToggleDir,
-  onFileClick,
+  onFileOpen,
   onRefresh,
   onStartCreate,
   creatingUnder,
@@ -404,18 +401,24 @@ const FileTreeRow = memo(function FileTreeRow({
   }, []);
 
   const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+    () => {
       if (Date.now() < suppressClickUntilRef.current) {
         return;
       }
       if (isDir) {
         onToggleDir(node.path);
-      } else {
-        onFileClick(node, e);
       }
     },
-    [isDir, node, onToggleDir, onFileClick],
+    [isDir, node.path, onToggleDir],
   );
+
+  const handleDoubleClick = useCallback(() => {
+    if (!isDir) onFileOpen(node);
+  }, [isDir, node, onFileOpen]);
+
+  const handleOpenInOpenFiles = useCallback(() => {
+    if (!isDir) onFileOpen(node);
+  }, [isDir, node, onFileOpen]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -545,6 +548,7 @@ const FileTreeRow = memo(function FileTreeRow({
       <div
         ref={rowRef}
         onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
         className={`group relative flex min-h-7 cursor-pointer items-center gap-2 pe-1.5 py-1 transition-colors duration-75 hover:bg-foreground/[0.05] ${
           menuOpen ? "bg-foreground/[0.05]" : ""
@@ -601,9 +605,9 @@ const FileTreeRow = memo(function FileTreeRow({
                   <ExternalLink className="me-2 h-3.5 w-3.5" />
                   Open in Editor
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleClick}>
+                <DropdownMenuItem onClick={handleOpenInOpenFiles}>
                   <Eye className="me-2 h-3.5 w-3.5" />
-                  Preview
+                  Open in Open Files
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>

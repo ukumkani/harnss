@@ -50,7 +50,8 @@ export interface ToolIslandContentProps {
   // Panel-specific callbacks
   onElementGrab?: (element: GrabbedElement) => void;
   onScrollToToolCall?: (messageId: string) => void;
-  onPreviewFile?: (path: string, rect: DOMRect) => void;
+  onOpenProjectFile?: (path: string) => void;
+  reviewTargetFiles: string[];
   collapsedRepos: Set<string>;
   onToggleRepoCollapsed: (path: string) => void;
   // MCP panel
@@ -84,7 +85,8 @@ export function ToolIslandContent({
   resolvedTheme,
   onElementGrab,
   onScrollToToolCall,
-  onPreviewFile,
+  onOpenProjectFile,
+  reviewTargetFiles,
   collapsedRepos,
   onToggleRepoCollapsed,
   mcpServerStatuses,
@@ -135,8 +137,10 @@ export function ToolIslandContent({
           messages={messages}
           cwd={projectPath}
           activeEngine={activeEngine}
+          manualFiles={reviewTargetFiles}
           onScrollToToolCall={onScrollToToolCall}
           enabled={true}
+          resolvedTheme={resolvedTheme}
           headerControls={headerControls}
         />
       );
@@ -145,7 +149,7 @@ export function ToolIslandContent({
         <ProjectFilesPanel
           cwd={projectPath}
           enabled={true}
-          onPreviewFile={onPreviewFile}
+          onOpenFile={onOpenProjectFile}
           headerControls={headerControls}
         />
       );

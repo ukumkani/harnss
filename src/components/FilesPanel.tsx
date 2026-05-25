@@ -1,5 +1,6 @@
 import { memo, startTransition, useMemo, useCallback, useEffect, useState } from "react";
 import { FileText, Loader2 } from "lucide-react";
+import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PanelHeader } from "@/components/PanelHeader";
@@ -11,12 +12,15 @@ import {
   formatRanges,
   getRelativePath,
 } from "@/lib/file-access";
+import { getLanguageFromPath } from "@/lib/languages";
 import {
   buildSessionCacheKey,
   computeFilePanelData,
   getCachedFilePanelData,
   type FilePanelData,
 } from "@/lib/session/derived-data";
+import { highlightToLines } from "@/lib/syntax-highlight";
+import type { ResolvedTheme } from "@/hooks/useTheme";
 import type { EngineId, UIMessage } from "@/types";
 
 interface FilesPanelProps {
@@ -24,8 +28,10 @@ interface FilesPanelProps {
   messages: UIMessage[];
   cwd?: string;
   activeEngine?: EngineId;
+  manualFiles?: string[];
   onScrollToToolCall?: (messageId: string) => void;
   enabled?: boolean;
+  resolvedTheme?: ResolvedTheme;
   headerControls?: React.ReactNode;
 }
 
@@ -34,12 +40,21 @@ export const FilesPanel = memo(function FilesPanel({
   messages,
   cwd,
   activeEngine,
+  manualFiles = [],
   onScrollToToolCall,
   enabled = true,
+  resolvedTheme = "dark",
   headerControls,
 }: FilesPanelProps) {
   const [hasClaudeMd, setHasClaudeMd] = useState(false);
   const [data, setData] = useState<FilePanelData | null>(null);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [reviewFile, setReviewFile] = useState<{
+    path: string;
+    content: string;
+    error: string | null;
+    loading: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (!enabled || activeEngine !== "claude" || !cwd) {
@@ -105,9 +120,77 @@ export const FilesPanel = memo(function FilesPanel({
     };
   }, [activeEngine, cacheKey, cacheSessionId, cwd, enabled, hasClaudeMd, messages]);
 
-  const files = data?.files ?? [];
+  const files = useMemo(() => {
+    const derivedFiles = data?.files ?? [];
+    if (manualFiles.length === 0) return derivedFiles;
+
+    const derivedPaths = new Set(derivedFiles.map((file) => file.path));
+    const manualAccesses = manualFiles
+      .filter((path) => !derivedPaths.has(path))
+      .map((path, index) => ({
+        path,
+        accessType: "read" as const,
+        lastAccessed: Date.now() - index,
+        ranges: [],
+      }));
+    return [...manualAccesses, ...derivedFiles];
+  }, [data?.files, manualFiles]);
+
+  useEffect(() => {
+    if (files.length === 0) {
+      setSelectedPath(null);
+      return;
+    }
+    setSelectedPath((current) => (
+      current && files.some((file) => file.path === current)
+        ? current
+        : files[0].path
+    ));
+  }, [files]);
+
+  useEffect(() => {
+    if (!selectedPath) {
+      setReviewFile(null);
+      return;
+    }
+
+    let cancelled = false;
+    setReviewFile({ path: selectedPath, content: "", error: null, loading: true });
+    window.claude
+      .readFile(selectedPath)
+      .then((result) => {
+        if (cancelled) return;
+        setReviewFile({
+          path: selectedPath,
+          content: result.content ?? "",
+          error: result.error ?? null,
+          loading: false,
+        });
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setReviewFile({
+          path: selectedPath,
+          content: "",
+          error: error instanceof Error ? error.message : "Unable to load file",
+          loading: false,
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPath]);
+
+  const selectedLanguage = selectedPath ? getLanguageFromPath(selectedPath) : "text";
+  const highlightedLines = useMemo(() => {
+    if (!reviewFile?.content || reviewFile.loading || reviewFile.error) return [];
+    const syntaxStyle = resolvedTheme === "dark" ? oneDark : oneLight;
+    return highlightToLines(reviewFile.content, selectedLanguage, syntaxStyle);
+  }, [resolvedTheme, reviewFile, selectedLanguage]);
 
   const handleClick = useCallback((filePath: string) => {
+    setSelectedPath(filePath);
     if (!onScrollToToolCall) return;
     const messageId = data?.lastToolCallIdByFile.get(filePath);
     if (messageId) onScrollToToolCall(messageId);
@@ -137,54 +220,105 @@ export const FilesPanel = memo(function FilesPanel({
           </p>
         </div>
       ) : (
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="flex flex-col py-1">
-            {files.map((file) => {
-              const Icon = ACCESS_ICON[file.accessType];
-              const color = ACCESS_COLOR[file.accessType];
-              const label = ACCESS_LABEL[file.accessType];
-              const { fileName, dirPath } = getRelativePath(file.path, cwd);
-              const rangeText = formatRanges(file);
+        <div className="flex min-h-0 flex-1">
+          <ScrollArea className="min-h-0 w-48 shrink-0 border-r border-border/50">
+            <div className="flex flex-col py-1">
+              {files.map((file) => {
+                const Icon = ACCESS_ICON[file.accessType];
+                const color = ACCESS_COLOR[file.accessType];
+                const label = ACCESS_LABEL[file.accessType];
+                const { fileName, dirPath } = getRelativePath(file.path, cwd);
+                const rangeText = formatRanges(file);
+                const isSelected = file.path === selectedPath;
 
-              return (
-                <div
-                  key={file.path}
-                  className="group flex w-full items-center gap-2 px-3 py-1 text-start transition-colors hover:bg-foreground/[0.04] cursor-pointer"
-                  onClick={() => handleClick(file.path)}
-                >
-                  <Icon className={`h-3 w-3 shrink-0 ${color}`} strokeWidth={1.75} />
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline gap-1.5 min-w-0">
-                          <span className="truncate text-xs font-medium text-foreground/85 transition-colors duration-150 group-hover:text-foreground">
-                            {fileName}
-                          </span>
-                          {rangeText && (
-                            <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground/50">
-                              {rangeText}
+                return (
+                  <div
+                    key={file.path}
+                    className={`group flex w-full cursor-pointer items-center gap-2 px-3 py-1 text-start transition-colors hover:bg-foreground/[0.04] ${
+                      isSelected ? "bg-foreground/[0.06]" : ""
+                    }`}
+                    onClick={() => handleClick(file.path)}
+                  >
+                    <Icon className={`h-3 w-3 shrink-0 ${color}`} strokeWidth={1.75} />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex min-w-0 items-baseline gap-1.5">
+                            <span className="truncate text-xs font-medium text-foreground/85 transition-colors duration-150 group-hover:text-foreground">
+                              {fileName}
                             </span>
+                            {rangeText && (
+                              <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground/50">
+                                {rangeText}
+                              </span>
+                            )}
+                          </div>
+                          {dirPath && (
+                            <div className="truncate text-[10px] text-muted-foreground/55">
+                              {dirPath}
+                            </div>
                           )}
                         </div>
-                        {dirPath && (
-                          <div className="truncate text-[10px] text-muted-foreground/55">
-                            {dirPath}
-                          </div>
-                        )}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="left" sideOffset={8}>
-                      <p className="text-xs">
-                        {file.path} ({label.toLowerCase()}{rangeText ? `, ${rangeText}` : ""}{file.totalLines ? ` of ${file.totalLines}` : ""})
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <OpenInEditorButton filePath={file.path} />
+                      </TooltipTrigger>
+                      <TooltipContent side="left" sideOffset={8}>
+                        <p className="text-xs">
+                          {file.path} ({label.toLowerCase()}{rangeText ? `, ${rangeText}` : ""}{file.totalLines ? ` of ${file.totalLines}` : ""})
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <OpenInEditorButton filePath={file.path} />
+                  </div>
+                );
+              })}
+            </div>
+          </ScrollArea>
+
+          <div className="flex min-w-0 flex-1 flex-col">
+            {selectedPath ? (
+              <>
+                <div className="flex h-8 shrink-0 items-center gap-2 border-b border-border/50 px-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs font-medium text-foreground/80">
+                      {getRelativePath(selectedPath, cwd).fileName}
+                    </div>
+                  </div>
+                  <span className="shrink-0 rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                    {selectedLanguage}
+                  </span>
+                  <OpenInEditorButton filePath={selectedPath} />
                 </div>
-              );
-            })}
+                {reviewFile?.loading ? (
+                  <div className="flex flex-1 flex-col items-center justify-center gap-1 p-4">
+                    <Loader2 className="h-3 w-3 animate-spin text-foreground/25" />
+                    <p className="text-center text-[10px] text-muted-foreground/40">
+                      Loading file…
+                    </p>
+                  </div>
+                ) : reviewFile?.error ? (
+                  <div className="flex flex-1 flex-col items-center justify-center gap-1.5 p-6">
+                    <FileText className="h-4 w-4 text-foreground/15" />
+                    <p className="text-center text-[10px] leading-relaxed text-muted-foreground/40">
+                      Unable to load file
+                    </p>
+                  </div>
+                ) : (
+                  <ScrollArea className="min-h-0 flex-1">
+                    <pre className="m-0 min-w-max p-3 font-mono text-[11px] leading-5 text-foreground/85">
+                      {highlightedLines.map((line, index) => (
+                        <div key={index} className="flex min-h-5">
+                          <span className="w-10 shrink-0 select-none pr-3 text-right tabular-nums text-muted-foreground/35">
+                            {index + 1}
+                          </span>
+                          <code className="whitespace-pre">{line}</code>
+                        </div>
+                      ))}
+                    </pre>
+                  </ScrollArea>
+                )}
+              </>
+            ) : null}
           </div>
-        </ScrollArea>
+        </div>
       )}
     </div>
   );
