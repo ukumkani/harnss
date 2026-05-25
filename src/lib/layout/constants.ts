@@ -13,6 +13,7 @@ export const ISLAND_RADIUS = 12;
 export const ISLAND_CONTROL_RADIUS = 11;
 export const WINDOWS_FRAME_BUFFER_WIDTH = 16;
 
+export const MIN_LAYOUT_ITEM_FRACTION = 0.1;
 export const MIN_RIGHT_PANEL_WIDTH = 200;
 export const MIN_TOOLS_PANEL_WIDTH = 280;
 
@@ -81,7 +82,7 @@ export const MIN_CHAT_WIDTH_SPLIT = 458;
 export const SPLIT_HANDLE_WIDTH = ISLAND_PANEL_GAP;
 
 /** Minimum width fraction for any single pane. */
-export const MIN_PANE_WIDTH_FRACTION = 0.15;
+export const MIN_PANE_WIDTH_FRACTION = MIN_LAYOUT_ITEM_FRACTION;
 
 /** Minimum split ratio (prevents either pane from becoming too narrow). */
 export const MIN_SPLIT_RATIO = 0.3;
@@ -115,6 +116,10 @@ export function getMinSplitViewWindowWidth(platform: string, paneCount = 2): num
     handles;
 
   return platform === "win32" ? width + WINDOWS_FRAME_BUFFER_WIDTH : width;
+}
+
+export function getMinLayoutItemSizePx(containerSize: number): number {
+  return Math.max(0, containerSize * MIN_LAYOUT_ITEM_FRACTION);
 }
 
 /** Calculate equal width fractions for N panes. */
