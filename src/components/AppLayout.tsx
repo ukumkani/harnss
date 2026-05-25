@@ -124,7 +124,7 @@ export function AppLayout() {
     isIsland: settings.islandLayout,
     spaceOpacity,
   });
-  const { isLightGlass, isNativeGlass, chatFadeStrength, titlebarSurfaceColor, topFadeBackground, bottomFadeBackground } = glassTheme;
+  const { isLightGlass, isNativeGlass, chatFadeStrength, titlebarSurfaceColor, topFadeBackground } = glassTheme;
   const layoutUI = useAppLayoutUIState({
     isNativeGlass,
     hasProjects,
@@ -1249,7 +1249,6 @@ export function AppLayout() {
                             chatFadeStrength={chatFadeStrength}
                             topFadeBackground={topFadeBackground}
                             titlebarSurfaceColor={titlebarSurfaceColor}
-                            bottomFadeBackground={bottomFadeBackground}
                             splitToolDrag={splitToolDrag}
                             setSplitToolDrag={setSplitToolDrag}
                             commitSplitToolDrop={commitSplitToolDrop}
@@ -1523,14 +1522,6 @@ export function AppLayout() {
                 onSendQueuedNow={handleSendQueuedNow}
                 onUnqueueQueuedMessage={handleUnqueueMessage}
                 sendNextId={manager.sendNextId}
-              />
-              <div
-                className={`pointer-events-none absolute inset-x-0 bottom-0 z-[5] transition-opacity duration-200 ${isIsland ? "h-24" : "h-28"}`}
-                style={{
-                  bottom: "var(--chat-composer-inset, 0px)",
-                  opacity: chatFadeStrength,
-                  background: bottomFadeBackground,
-                }}
               />
               <div data-chat-composer className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
                 <BottomComposer

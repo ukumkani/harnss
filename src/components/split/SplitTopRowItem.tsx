@@ -58,7 +58,6 @@ export interface SplitTopRowItemProps {
   chatFadeStrength: number;
   topFadeBackground: string;
   titlebarSurfaceColor: string;
-  bottomFadeBackground: string;
 
   // Tool drag state
   splitToolDrag: ToolDragState | null;
@@ -407,7 +406,7 @@ function SplitTopRowItemInner(props: SplitTopRowItemProps) {
     projects, activeProjectPath,
     splitView, paneControllerCtx,
     isIsland, shouldAnimateTopRowLayout,
-    chatFadeStrength, topFadeBackground, titlebarSurfaceColor, bottomFadeBackground,
+    chatFadeStrength, topFadeBackground, titlebarSurfaceColor,
     splitToolDrag, setSplitToolDrag, commitSplitToolDrop, resetSplitToolDrag,
     sidebarOpen, sidebarToggle,
     showThinking,
@@ -483,7 +482,6 @@ function SplitTopRowItemInner(props: SplitTopRowItemProps) {
       chatFadeStrength,
       topFadeBackground,
       titlebarSurfaceColor,
-      bottomFadeBackground,
       isFocused: splitView.focusedSessionId === sessionId,
       sidebarOpen,
       onToggleSidebar: sidebarToggle,

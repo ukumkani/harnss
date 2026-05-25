@@ -46,8 +46,6 @@ const PROCESSING_ROW: RowDescriptor = { kind: "processing" };
 const CHAT_TOP_PADDING_PX = 56;
 const CHAT_BOTTOM_PADDING_PX = 144;
 const CHAT_EXTRA_BOTTOM_PADDING_PX = 280;
-const CHAT_COMPOSER_CLEARANCE_PX = 24;
-const CHAT_COMPOSER_INSET_VAR = "--chat-composer-inset";
 const NARROW_CHAT_MESSAGE_WIDTH_THRESHOLD_PX = 900;
 // Progressive rendering: render bottom rows immediately, hydrate older rows in background
 const INITIAL_RENDER_ROWS = 20;
@@ -369,7 +367,6 @@ function ChatViewContent({
 
   // ── Scroll state (refs, not state — rerender-use-ref-transient-values) ──
   const bottomLockedRef = useRef(true);
-  const [composerInset, setComposerInset] = useState(0);
 
   // ── Deferred mount: show spinner for one frame, then render content ──
   // Prevents UI freeze on session/space switch by deferring heavy work.
@@ -390,11 +387,6 @@ function ChatViewContent({
   const onScrolledToMessageRef = useRef(onScrolledToMessage);
   onScrolledToMessageRef.current = onScrolledToMessage;
   const lastTopProgressRef = useRef(-1);
-  const bottomPadding = useMemo(() => {
-    const fallbackPadding = extraBottomPadding ? CHAT_EXTRA_BOTTOM_PADDING_PX : CHAT_BOTTOM_PADDING_PX;
-    if (composerInset <= 0) return fallbackPadding;
-    return Math.max(fallbackPadding, composerInset + CHAT_COMPOSER_CLEARANCE_PX);
-  }, [composerInset, extraBottomPadding]);
   const fallbackBottomPadding = extraBottomPadding ? CHAT_EXTRA_BOTTOM_PADDING_PX : CHAT_BOTTOM_PADDING_PX;
 
   // ── Single-pass partition: queued vs non-queued (js-combine-iterations) ──
@@ -666,44 +658,7 @@ function ChatViewContent({
     if (!contentReady) return;
     if (rows.length === 0) return;
     followBottomNow();
-  }, [bottomPadding, contentReady, followBottomNow, rows.length]);
-
-  useLayoutEffect(() => {
-    if (!contentReady) return;
-    const el = scrollContainerRef.current;
-    if (!el) return;
-
-    const chatPane = el.closest<HTMLElement>("[data-chat-pane]");
-    const insetScope = chatPane ?? el.parentElement;
-    const composer = insetScope?.querySelector<HTMLElement>("[data-chat-composer]");
-    if (!composer) {
-      insetScope?.style.setProperty(CHAT_COMPOSER_INSET_VAR, "0px");
-      setComposerInset((prev) => (prev === 0 ? prev : 0));
-      return;
-    }
-
-    const updateComposerInset = () => {
-      const nextInset = Math.ceil(composer.getBoundingClientRect().height);
-      insetScope?.style.setProperty(CHAT_COMPOSER_INSET_VAR, `${nextInset}px`);
-      setComposerInset((prev) => (prev === nextInset ? prev : nextInset));
-    };
-
-    updateComposerInset();
-
-    const syncComposerInset = () => {
-      updateComposerInset();
-      followBottomNow();
-    };
-    const observer = new ResizeObserver(syncComposerInset);
-    observer.observe(composer);
-    window.addEventListener("chat-composer-resize", syncComposerInset);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("chat-composer-resize", syncComposerInset);
-      insetScope?.style.removeProperty(CHAT_COMPOSER_INSET_VAR);
-    };
-  }, [contentReady, followBottomNow]);
+  }, [contentReady, followBottomNow, rows.length]);
 
   useLayoutEffect(() => {
     if (!contentReady) return;
@@ -852,7 +807,7 @@ function ChatViewContent({
 
   const chatContentStyle = {
     paddingTop: `${CHAT_TOP_PADDING_PX}px`,
-    paddingBottom: `max(${fallbackBottomPadding}px, calc(var(${CHAT_COMPOSER_INSET_VAR}, ${composerInset}px) + ${CHAT_COMPOSER_CLEARANCE_PX}px))`,
+    paddingBottom: `${fallbackBottomPadding}px`,
     "--chat-assistant-message-max-width": useFullWidthMessages ? "100%" : "85%",
     "--chat-user-message-max-width": useFullWidthMessages ? "100%" : "80%",
   } as CSSProperties;
