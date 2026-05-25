@@ -247,7 +247,7 @@ export const SettingsView = memo(function SettingsView({
         </div>
 
         {/* Content area — centered container with max width */}
-        <div className="flex min-w-0 flex-1 justify-center overflow-hidden">
+        <div className="window-body-content flex min-w-0 flex-1 justify-center overflow-hidden">
           <div className="flex h-full w-full max-w-3xl flex-col">
             {renderSection()}
           </div>

@@ -76,6 +76,8 @@
 }
 
 :root {
+  --app-body-font-size: var(--text-sm);
+  --app-body-line-height: var(--text-sm--line-height);
   --space-hue: 0;
   --space-chroma: 0;
   --radius: 0.625rem;
@@ -165,7 +167,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-size: 14px;
+    font-size: var(--app-body-font-size);
     line-height: 1.45;
   }
   /* Browsers default <button> to cursor:default — override globally so every
@@ -175,6 +177,31 @@
   [role="button"] {
     cursor: pointer;
   }
+}
+
+.window-body-content
+  :where(
+    div,
+    span,
+    p,
+    li,
+    label,
+    button,
+    input,
+    textarea,
+    select,
+    pre,
+    code,
+    table,
+    th,
+    td,
+    [role="menuitem"],
+    [role="option"],
+    [role="tab"],
+    [contenteditable="true"]
+  ):not([data-panel-header], [data-panel-header] *) {
+  font-size: var(--app-body-font-size);
+  line-height: var(--app-body-line-height);
 }
 
 /* Liquid Glass: transparent sidebar when native glass is active */

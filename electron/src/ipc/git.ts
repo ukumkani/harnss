@@ -22,6 +22,15 @@ function normalizePath(inputPath: string): string {
   }
 }
 
+async function pathExists(inputPath: string): Promise<boolean> {
+  try {
+    await fs.promises.access(inputPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function isNestedPath(parentPath: string, childPath: string): boolean {
   const relative = path.relative(parentPath, childPath);
   return relative.length > 0 && !relative.startsWith("..") && !path.isAbsolute(relative);
@@ -147,19 +156,19 @@ export function register(): void {
       });
     };
 
-    const walk = (dir: string, depth: number): void => {
+    const walk = async (dir: string, depth: number): Promise<void> => {
       if (depth > 2) return;
       try {
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        const entries = await fs.promises.readdir(dir, { withFileTypes: true });
         for (const entry of entries) {
           if (!entry.isDirectory() || ALWAYS_SKIP.has(entry.name)) continue;
           const sub = path.join(dir, entry.name);
           if (entry.name === ".git") continue;
           const gitDir = path.join(sub, ".git");
-          if (fs.existsSync(gitDir)) {
+          if (await pathExists(gitDir)) {
             candidatePaths.add(normalizePath(sub));
           } else {
-            walk(sub, depth + 1);
+            await walk(sub, depth + 1);
           }
         }
       } catch {
@@ -167,7 +176,7 @@ export function register(): void {
       }
     };
 
-    walk(normalizedProjectPath, 0);
+    await walk(normalizedProjectPath, 0);
 
     for (const candidatePath of candidatePaths) {
       const metadata = await readRepoMetadata(candidatePath);

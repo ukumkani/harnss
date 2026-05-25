@@ -97,7 +97,8 @@ export function ToolIslandContent({
   onReconnectMcpServer,
   onRestartWithMcpServers,
 }: ToolIslandContentProps): ReactNode {
-  switch (toolId) {
+  const content = (() => {
+    switch (toolId) {
     case "terminal":
       return (
         <ToolsPanel
@@ -169,5 +170,12 @@ export function ToolIslandContent({
           headerControls={headerControls}
         />
       );
-  }
+    }
+  })();
+
+  return (
+    <div className="window-body-content flex h-full min-h-0 flex-col">
+      {content}
+    </div>
+  );
 }

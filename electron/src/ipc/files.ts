@@ -550,7 +550,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
       if (!absPath || absPath === path.sep) {
         return { error: "Invalid file path" };
       }
-      const content = fs.readFileSync(absPath, "utf-8");
+      const content = await fsPromises.readFile(absPath, "utf-8");
       return { content };
     } catch (err) {
       const errMsg = reportError("FILE:READ_ERR", err, { filePath });

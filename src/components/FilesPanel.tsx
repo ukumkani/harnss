@@ -17,9 +17,12 @@ import {
   getCachedFilePanelData,
   type FilePanelData,
 } from "@/lib/session/derived-data";
-import { highlightToLines } from "@/lib/syntax-highlight";
+import { renderHighlightedLines } from "@/lib/syntax-highlight";
+import { highlightToLineTokens, type HighlightLine } from "@/lib/syntax-highlight-core";
+import { runWorkerTask, terminateWorker } from "@/lib/worker-request";
 import type { ResolvedTheme } from "@/hooks/useTheme";
 import type { EngineId, UIMessage } from "@/types";
+import type { FileAccess } from "@/lib/file-access";
 
 interface FilesPanelProps {
   sessionId?: string | null;
@@ -71,8 +74,11 @@ export const FilesPanel = memo(function FilesPanel({
     loading: boolean;
   } | null>(null);
   const [closedPaths, setClosedPaths] = useState<Set<string>>(() => new Set());
+  const [highlightedLineTokens, setHighlightedLineTokens] = useState<HighlightLine[]>([]);
   const previewScopeRef = useRef<HTMLDivElement>(null);
   const previewSearchRootRef = useRef<HTMLDivElement>(null);
+  const filePanelWorkerRef = useRef<Worker | null>(null);
+  const syntaxWorkerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
     if (!enabled || activeEngine !== "claude" || !cwd) {
@@ -121,15 +127,33 @@ export const FilesPanel = memo(function FilesPanel({
 
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      const next = computeFilePanelData(
+      const includeClaudeMd = activeEngine === "claude" && hasClaudeMd;
+      runWorkerTask<{
+        sessionId: string;
+        cacheKey: string;
+        messages: UIMessage[];
+        cwd?: string;
+        includeClaudeMd: boolean;
+      }, {
+        files: FileAccess[];
+        lastToolCallIdByFile: Array<[string, string]>;
+      }>(
+        filePanelWorkerRef,
+        () => new Worker(new URL("../workers/file-panel-data.worker.ts", import.meta.url), { type: "module" }),
+        { sessionId: cacheSessionId, cacheKey, messages, cwd, includeClaudeMd },
+      ).then((result) => ({
+        files: result.files,
+        lastToolCallIdByFile: new Map(result.lastToolCallIdByFile),
+      })).catch(() => computeFilePanelData(
         cacheSessionId,
         cacheKey,
         messages,
         cwd,
-        activeEngine === "claude" && hasClaudeMd,
-      );
-      if (cancelled) return;
-      startTransition(() => setData(next));
+        includeClaudeMd,
+      )).then((next) => {
+        if (cancelled) return;
+        startTransition(() => setData(next));
+      });
     }, 0);
 
     return () => {
@@ -219,12 +243,41 @@ export const FilesPanel = memo(function FilesPanel({
     };
   }, [selectedPath]);
 
+  useEffect(() => {
+    return () => {
+      terminateWorker(filePanelWorkerRef);
+      terminateWorker(syntaxWorkerRef);
+    };
+  }, []);
+
   const selectedLanguage = selectedPath ? getLanguageFromPath(selectedPath) : "text";
-  const highlightedLines = useMemo(() => {
-    if (!reviewFile?.content || reviewFile.loading || reviewFile.error) return [];
+  useEffect(() => {
+    if (!reviewFile?.content || reviewFile.loading || reviewFile.error || selectedLanguage === "markdown") {
+      setHighlightedLineTokens([]);
+      return;
+    }
+
+    let cancelled = false;
     const syntaxStyle = resolvedTheme === "dark" ? oneDark : oneLight;
-    return highlightToLines(reviewFile.content, selectedLanguage, syntaxStyle);
+    setHighlightedLineTokens([]);
+    runWorkerTask<{
+      code: string;
+      language: string;
+      style: typeof syntaxStyle;
+    }, HighlightLine[]>(
+      syntaxWorkerRef,
+      () => new Worker(new URL("../workers/syntax-highlight.worker.ts", import.meta.url), { type: "module" }),
+      { code: reviewFile.content, language: selectedLanguage, style: syntaxStyle },
+    ).catch(() => highlightToLineTokens(reviewFile.content, selectedLanguage, syntaxStyle))
+      .then((lines) => {
+        if (!cancelled) setHighlightedLineTokens(lines);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [resolvedTheme, reviewFile, selectedLanguage]);
+  const highlightedLines = useMemo(() => renderHighlightedLines(highlightedLineTokens), [highlightedLineTokens]);
   const selectedDisplayPath = selectedPath ? compactDisplayPath(selectedPath, cwd) : "";
   const previewSearchKey = `${selectedPath ?? ""}:${reviewFile?.loading ? "loading" : "ready"}:${reviewFile?.content.length ?? 0}:${reviewFile?.error ?? ""}`;
   const previewSearch = useRegionSearch(previewSearchRootRef, previewSearchKey);
