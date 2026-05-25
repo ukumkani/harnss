@@ -2,6 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { execFileSync, spawn } from "child_process";
+import { app } from "electron";
 import { getAppSetting } from "./app-settings";
 import { extractErrorMessage, reportError } from "./error-utils";
 import { log } from "./logger";
@@ -107,6 +108,7 @@ function resolveFromPathLookup(): ClaudeBinaryResolution | null {
 }
 
 function resolveSdkFallback(): ClaudeBinaryResolution | null {
+  if (app.isPackaged) return null;
   const cliPath = getCliPath();
   return cliPath ? { strategy: "sdk-fallback", path: cliPath } : null;
 }
@@ -314,7 +316,7 @@ export function getClaudeBinaryMetadata(options?: ResolveClaudeBinaryOptions): {
 export async function getClaudeVersion(binaryPath?: string): Promise<string | null> {
   try {
     if (binaryPath) return readClaudeVersion(binaryPath);
-    const resolution = resolveClaudeBinarySync({ installIfMissing: false, allowSdkFallback: true });
+    const resolution = resolveClaudeBinarySync({ installIfMissing: false, allowSdkFallback: false });
     if (!resolution) return null;
     return readClaudeVersion(resolution.path);
   } catch {
