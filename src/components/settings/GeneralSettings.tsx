@@ -20,6 +20,7 @@ export const GeneralSettings = memo(function GeneralSettings({
   language = DEFAULT_LANGUAGE,
 }: GeneralSettingsProps) {
   // Local optimistic state — synced from props once loaded
+  const [automaticUpdates, setAutomaticUpdates] = useState(false);
   const [allowPrerelease, setAllowPrerelease] = useState(false);
   const [chatLimit, setChatLimit] = useState(10);
   const [preferredEditor, setPreferredEditor] = useState<PreferredEditor>("auto");
@@ -28,6 +29,7 @@ export const GeneralSettings = memo(function GeneralSettings({
 
   useEffect(() => {
     if (appSettings) {
+      setAutomaticUpdates(appSettings.automaticUpdatesEnabled);
       setAllowPrerelease(appSettings.allowPrereleaseUpdates);
       setChatLimit(appSettings.defaultChatLimit || 10);
       setPreferredEditor(appSettings.preferredEditor || "auto");
@@ -40,6 +42,20 @@ export const GeneralSettings = memo(function GeneralSettings({
     async (checked: boolean) => {
       setAllowPrerelease(checked); // optimistic
       await onUpdateAppSettings({ allowPrereleaseUpdates: checked });
+    },
+    [onUpdateAppSettings],
+  );
+
+  const handleToggleAutomaticUpdates = useCallback(
+    async (checked: boolean) => {
+      setAutomaticUpdates(checked);
+      if (!checked) {
+        setAllowPrerelease(false);
+      }
+      await onUpdateAppSettings({
+        automaticUpdatesEnabled: checked,
+        ...(!checked ? { allowPrereleaseUpdates: false } : {}),
+      });
     },
     [onUpdateAppSettings],
   );
@@ -102,11 +118,21 @@ export const GeneralSettings = memo(function GeneralSettings({
           {/* ── Updates section ── */}
           <SettingsSection icon={Download} label={t(language, "settings.general.updates.section")}>
             <SettingRow
+              label={t(language, "settings.general.updates.automatic.label")}
+              description={t(language, "settings.general.updates.automatic.description")}
+            >
+              <Switch
+                checked={automaticUpdates}
+                onCheckedChange={handleToggleAutomaticUpdates}
+              />
+            </SettingRow>
+            <SettingRow
               label={t(language, "settings.general.updates.prerelease.label")}
               description={t(language, "settings.general.updates.prerelease.description")}
             >
               <Switch
-                checked={allowPrerelease}
+                checked={automaticUpdates && allowPrerelease}
+                disabled={!automaticUpdates}
                 onCheckedChange={handleTogglePrerelease}
               />
             </SettingRow>

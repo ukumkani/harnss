@@ -16,7 +16,15 @@ export const PreReleaseBanner = memo(function PreReleaseBanner({
 
     // Also listen for proactive push from main process
     const unsub = window.claude.updater.onPreReleaseStatus(setInfo);
-    return unsub;
+    const unsubSettings = window.claude.settings.onChanged((settings) => {
+      if (!settings.automaticUpdatesEnabled) {
+        setInfo(null);
+      }
+    });
+    return () => {
+      unsub();
+      unsubSettings();
+    };
   }, []);
 
   const handleOpenSettings = useCallback(

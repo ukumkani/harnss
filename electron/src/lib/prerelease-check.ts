@@ -1,6 +1,7 @@
 import { app, ipcMain, BrowserWindow } from "electron";
 import { log } from "./logger";
 import { reportError } from "./error-utils";
+import { getAppSetting } from "./app-settings";
 
 /**
  * Pre-release detection via GitHub Releases API.
@@ -28,6 +29,10 @@ const FETCH_TIMEOUT_MS = 10_000;
 
 let cachedResult: PreReleaseInfo | null = null;
 
+function stableResult(): PreReleaseInfo {
+  return { isPreRelease: false, version: app.getVersion(), releaseUrl: null };
+}
+
 /**
  * Query the GitHub Releases API for the release matching the current app version.
  * Returns `{ isPreRelease: true, ... }` if the release is marked as a pre-release,
@@ -38,7 +43,7 @@ async function checkIsPreRelease(): Promise<PreReleaseInfo> {
   const tag = `v${version}`;
   const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${tag}`;
 
-  const stableResult: PreReleaseInfo = { isPreRelease: false, version, releaseUrl: null };
+  const stable = stableResult();
 
   try {
     const controller = new AbortController();
@@ -58,10 +63,10 @@ async function checkIsPreRelease(): Promise<PreReleaseInfo> {
       // 404 = no release for this tag (e.g. local dev build) → assume stable
       if (response.status === 404) {
         log("PRERELEASE", `No GitHub release found for ${tag} — assuming stable`);
-        return stableResult;
+        return stable;
       }
       log("PRERELEASE", `GitHub API returned ${response.status} for ${tag}`);
-      return stableResult;
+      return stable;
     }
 
     const release = (await response.json()) as GitHubRelease;
@@ -76,7 +81,7 @@ async function checkIsPreRelease(): Promise<PreReleaseInfo> {
   } catch (err) {
     // Network failure, timeout, etc. — fail safe to "not pre-release"
     reportError("PRERELEASE", err, { tag });
-    return stableResult;
+    return stable;
   }
 }
 
@@ -91,11 +96,12 @@ export function initPreReleaseCheck(
 ): void {
   // IPC handler — returns cached result or fetches on demand
   ipcMain.handle("updater:is-prerelease", async () => {
+    if (!getAppSetting("automaticUpdatesEnabled")) return stableResult();
     if (cachedResult) return cachedResult;
 
     // In dev mode, always return stable
     if (!app.isPackaged) {
-      return { isPreRelease: false, version: app.getVersion(), releaseUrl: null };
+      return stableResult();
     }
 
     cachedResult = await checkIsPreRelease();
@@ -104,6 +110,7 @@ export function initPreReleaseCheck(
 
   // Skip background fetch in dev — version won't match any GitHub release
   if (!app.isPackaged) return;
+  if (!getAppSetting("automaticUpdatesEnabled")) return;
 
   // Background fetch after startup (don't block launch)
   setTimeout(async () => {

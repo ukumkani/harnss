@@ -24,6 +24,7 @@ const NOTIFICATION_DEFAULTS: NotificationSettings = {
 };
 
 const DEFAULTS: AppSettings = {
+  automaticUpdatesEnabled: false,
   allowPrereleaseUpdates: false,
   defaultChatLimit: 10,
   preferredEditor: "auto",
@@ -72,6 +73,9 @@ export function getAppSettings(): AppSettings {
         sessionComplete: { ...NOTIFICATION_DEFAULTS.sessionComplete, ...parsedNotif?.sessionComplete },
       },
     };
+    if (!cached.automaticUpdatesEnabled) {
+      cached.allowPrereleaseUpdates = false;
+    }
   } catch {
     cached = { ...DEFAULTS };
   }
@@ -87,6 +91,9 @@ export function getAppSetting<K extends keyof AppSettings>(key: K): AppSettings[
 export function setAppSettings(patch: Partial<AppSettings>): AppSettings {
   const current = getAppSettings();
   const next = { ...current, ...patch };
+  if (!next.automaticUpdatesEnabled) {
+    next.allowPrereleaseUpdates = false;
+  }
   cached = next;
 
   try {

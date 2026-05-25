@@ -57,7 +57,7 @@ const {
   });
 
   // Wrap in object so the callback reference can be mutated from inside vi.mock
-  const cbRef = { current: null as ((s: { allowPrereleaseUpdates: boolean }) => void) | null };
+  const cbRef = { current: null as ((s: { automaticUpdatesEnabled: boolean; allowPrereleaseUpdates: boolean }) => void) | null };
 
   return {
     mockApp: app,
@@ -111,7 +111,7 @@ vi.mock("../app-settings", () => ({
 }));
 
 vi.mock("../../ipc/settings", () => ({
-  onSettingsChanged: vi.fn((cb: (settings: { allowPrereleaseUpdates: boolean }) => void) => {
+  onSettingsChanged: vi.fn((cb: (settings: { automaticUpdatesEnabled: boolean; allowPrereleaseUpdates: boolean }) => void) => {
     settingsChangedCbRef.current = cb;
   }),
 }));
@@ -215,7 +215,11 @@ beforeEach(() => {
   (fs.existsSync as Mock).mockReturnValue(false);
   (fs.readdirSync as Mock).mockReturnValue([]);
   (log as Mock).mockReset();
-  (getAppSetting as Mock).mockReturnValue(true);
+  (getAppSetting as Mock).mockImplementation((key: string) => {
+    if (key === "automaticUpdatesEnabled") return true;
+    if (key === "allowPrereleaseUpdates") return true;
+    return true;
+  });
   settingsChangedCbRef.current = null;
 });
 
@@ -324,6 +328,17 @@ describe("checkForUpdates", () => {
     expect(mockAutoUpdater.checkForUpdates).toHaveBeenCalledOnce();
   });
 
+  it("skips checks when automatic updates are disabled", async () => {
+    (getAppSetting as Mock).mockImplementation((key: string) => {
+      if (key === "automaticUpdatesEnabled") return false;
+      return true;
+    });
+
+    await checkForUpdates("test");
+
+    expect(mockAutoUpdater.checkForUpdates).not.toHaveBeenCalled();
+  });
+
   it("logs the reason string", async () => {
     await checkForUpdates("manual");
     expect(log).toHaveBeenCalledWith("UPDATER_DEBUG", expect.stringContaining("manual"));
@@ -401,6 +416,19 @@ describe("initAutoUpdater", () => {
       expect(mockAutoUpdater.allowDowngrade).toBe(false);
     });
 
+    it("disables prerelease channel when automatic updates are disabled", () => {
+      (getAppSetting as Mock).mockImplementation((key: string) => {
+        if (key === "automaticUpdatesEnabled") return false;
+        if (key === "allowPrereleaseUpdates") return true;
+        return true;
+      });
+
+      init();
+
+      expect(mockAutoUpdater.allowPrerelease).toBe(false);
+      expect(mockAutoUpdater.allowDowngrade).toBe(false);
+    });
+
     it("sets up custom logger on autoUpdater", () => {
       init();
       expect(mockAutoUpdater.logger).toBeDefined();
@@ -429,9 +457,20 @@ describe("initAutoUpdater", () => {
       expect(settingsChangedCbRef.current).not.toBeNull();
 
       // Simulate a settings change
-      settingsChangedCbRef.current!({ allowPrereleaseUpdates: false });
+      settingsChangedCbRef.current!({ automaticUpdatesEnabled: true, allowPrereleaseUpdates: false });
       expect(mockAutoUpdater.allowPrerelease).toBe(false);
       expect(mockAutoUpdater.allowDowngrade).toBe(false);
+    });
+
+    it("does not check for stable updates when automatic updates are disabled on prerelease builds", () => {
+      mockApp.getVersion.mockReturnValue("0.12.0-beta.1");
+
+      init();
+      settingsChangedCbRef.current!({ automaticUpdatesEnabled: false, allowPrereleaseUpdates: false });
+
+      expect(mockAutoUpdater.allowPrerelease).toBe(false);
+      expect(mockAutoUpdater.allowDowngrade).toBe(false);
+      expect(mockAutoUpdater.checkForUpdates).not.toHaveBeenCalled();
     });
 
     it("allows downgrade when a prerelease build switches to stable-only updates", () => {
@@ -442,7 +481,7 @@ describe("initAutoUpdater", () => {
       expect(mockAutoUpdater.allowPrerelease).toBe(true);
       expect(mockAutoUpdater.allowDowngrade).toBe(false);
 
-      settingsChangedCbRef.current!({ allowPrereleaseUpdates: false });
+      settingsChangedCbRef.current!({ automaticUpdatesEnabled: true, allowPrereleaseUpdates: false });
 
       expect(mockAutoUpdater.allowPrerelease).toBe(false);
       expect(mockAutoUpdater.allowDowngrade).toBe(true);
@@ -451,7 +490,11 @@ describe("initAutoUpdater", () => {
 
     it("enables downgrade on startup when a prerelease build is already in stable-only mode", () => {
       mockApp.getVersion.mockReturnValue("0.12.0-beta.1");
-      (getAppSetting as Mock).mockReturnValue(false);
+      (getAppSetting as Mock).mockImplementation((key: string) => {
+        if (key === "automaticUpdatesEnabled") return true;
+        if (key === "allowPrereleaseUpdates") return false;
+        return true;
+      });
 
       init();
 

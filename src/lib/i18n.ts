@@ -22,6 +22,8 @@ export type TranslationKey =
   | "settings.general.language.english"
   | "settings.general.language.chinese"
   | "settings.general.updates.section"
+  | "settings.general.updates.automatic.label"
+  | "settings.general.updates.automatic.description"
   | "settings.general.updates.prerelease.label"
   | "settings.general.updates.prerelease.description"
   | "settings.general.sidebar.section"
@@ -61,6 +63,8 @@ const EN: Record<TranslationKey, string> = {
   "settings.general.language.english": "English",
   "settings.general.language.chinese": "中文",
   "settings.general.updates.section": "Updates",
+  "settings.general.updates.automatic.label": "Automatic updates",
+  "settings.general.updates.automatic.description": "Check for app updates and show update notifications.",
   "settings.general.updates.prerelease.label": "Include pre-release updates",
   "settings.general.updates.prerelease.description": "Receive beta versions with the latest features. Disable to only get stable releases.",
   "settings.general.sidebar.section": "Sidebar",
@@ -101,6 +105,8 @@ const ZH_CN: Record<TranslationKey, string> = {
   "settings.general.language.english": "English",
   "settings.general.language.chinese": "中文",
   "settings.general.updates.section": "更新",
+  "settings.general.updates.automatic.label": "自动更新",
+  "settings.general.updates.automatic.description": "检查应用更新并显示更新通知。",
   "settings.general.updates.prerelease.label": "包含预发布版本更新",
   "settings.general.updates.prerelease.description": "接收包含最新功能的测试版本。关闭后只接收稳定版本。",
   "settings.general.sidebar.section": "侧边栏",

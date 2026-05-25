@@ -19,6 +19,17 @@ export const UpdateBanner = memo(function UpdateBanner() {
     const unsubs: Array<() => void> = [];
 
     unsubs.push(
+      window.claude.settings.onChanged((settings) => {
+        if (!settings.automaticUpdatesEnabled) {
+          setState({ phase: "idle" });
+          setDismissed(false);
+          setIsInstalling(false);
+          installRequestedRef.current = false;
+        }
+      }),
+    );
+
+    unsubs.push(
       window.claude.updater.onUpdateAvailable((info) => {
         setState({ phase: "available", version: info.version });
         setDismissed(false);

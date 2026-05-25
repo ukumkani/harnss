@@ -36,9 +36,13 @@ function isCurrentVersionPreRelease(): boolean {
   return app.getVersion().includes("-");
 }
 
-function syncUpdateChannelPreferences(allowPrereleaseUpdates: boolean): void {
-  autoUpdater.allowPrerelease = allowPrereleaseUpdates;
-  autoUpdater.allowDowngrade = !allowPrereleaseUpdates && isCurrentVersionPreRelease();
+function syncUpdateChannelPreferences(allowPrereleaseUpdates: boolean, automaticUpdatesEnabled = true): void {
+  autoUpdater.allowPrerelease = automaticUpdatesEnabled && allowPrereleaseUpdates;
+  autoUpdater.allowDowngrade = automaticUpdatesEnabled && !allowPrereleaseUpdates && isCurrentVersionPreRelease();
+}
+
+function areAutomaticUpdatesEnabled(): boolean {
+  return getAppSetting("automaticUpdatesEnabled") === true;
 }
 
 /** @internal Exported for testing. */
@@ -49,6 +53,11 @@ export function getErrorMessage(err: unknown): string {
 
 /** @internal Exported for testing. */
 export async function checkForUpdates(reason: string): Promise<void> {
+  if (!areAutomaticUpdatesEnabled()) {
+    log("UPDATER_DEBUG", `Skipping "${reason}" check; automatic updates disabled`);
+    return;
+  }
+
   if (updateCheckInFlight) {
     log("UPDATER_DEBUG", `Skipping "${reason}" check; update check already in progress`);
     return;
@@ -89,15 +98,21 @@ export function initAutoUpdater(
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
   // Read persisted preference (defaults to false)
-  syncUpdateChannelPreferences(getAppSetting("allowPrereleaseUpdates"));
+  const automaticUpdatesEnabled = areAutomaticUpdatesEnabled();
+  syncUpdateChannelPreferences(getAppSetting("allowPrereleaseUpdates"), automaticUpdatesEnabled);
 
   // React to setting changes at runtime (e.g. user toggles in Settings UI)
   onSettingsChanged((settings) => {
-    syncUpdateChannelPreferences(settings.allowPrereleaseUpdates);
+    syncUpdateChannelPreferences(settings.allowPrereleaseUpdates, settings.automaticUpdatesEnabled);
     log(
       "UPDATER",
-      `allowPrerelease changed to ${settings.allowPrereleaseUpdates}; allowDowngrade=${autoUpdater.allowDowngrade}`,
+      `automaticUpdates=${settings.automaticUpdatesEnabled}; allowPrerelease=${settings.allowPrereleaseUpdates}; allowDowngrade=${autoUpdater.allowDowngrade}`,
     );
+
+    if (!settings.automaticUpdatesEnabled) {
+      lastDownloadedVersion = null;
+      return;
+    }
 
     if (!settings.allowPrereleaseUpdates && isCurrentVersionPreRelease()) {
       void checkForUpdates("switch-to-stable");
@@ -105,6 +120,7 @@ export function initAutoUpdater(
   });
 
   autoUpdater.on("update-available", (info: UpdateInfo) => {
+    if (!areAutomaticUpdatesEnabled()) return;
     log("UPDATER", `Update available: ${info.version}`);
     const win = getMainWindow();
     win?.webContents.send("updater:update-available", {
@@ -118,6 +134,7 @@ export function initAutoUpdater(
   });
 
   autoUpdater.on("download-progress", (progress: ProgressInfo) => {
+    if (!areAutomaticUpdatesEnabled()) return;
     const win = getMainWindow();
     win?.webContents.send("updater:download-progress", {
       percent: progress.percent,
@@ -128,6 +145,7 @@ export function initAutoUpdater(
   });
 
   autoUpdater.on("update-downloaded", (info: UpdateInfo) => {
+    if (!areAutomaticUpdatesEnabled()) return;
     log("UPDATER", `Update downloaded: ${info.version}`);
     lastDownloadedVersion = info.version;
     const win = getMainWindow();
@@ -141,8 +159,13 @@ export function initAutoUpdater(
   });
 
   // IPC handlers for renderer
-  ipcMain.handle("updater:download", () => autoUpdater.downloadUpdate());
+  ipcMain.handle("updater:download", () => {
+    if (!areAutomaticUpdatesEnabled()) return null;
+    return autoUpdater.downloadUpdate();
+  });
   ipcMain.handle("updater:install", async () => {
+    if (!areAutomaticUpdatesEnabled()) return;
+
     if (process.platform === "darwin") {
       // squirrelDownloadedUpdate is a macOS-only property on MacUpdater — doesn't exist on
       // NsisUpdater (Windows) or AppImageUpdater (Linux), so only check it on macOS.

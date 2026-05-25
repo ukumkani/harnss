@@ -34,6 +34,8 @@ export interface NotificationSettings {
 
 /** Main-process app settings (persisted to JSON file in data dir). */
 export interface AppSettings {
+  /** Enable automatic update checks and update-related prompts (default: false) */
+  automaticUpdatesEnabled: boolean;
   /** Include pre-release versions when checking for updates */
   allowPrereleaseUpdates: boolean;
   /** Number of recent chats to show per project in the sidebar (default: 10) */
