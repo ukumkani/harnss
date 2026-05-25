@@ -64,7 +64,7 @@ export function TodoPanel({ todos }: TodoPanelProps) {
 
                 {/* Task text */}
                 <span
-                  className={`text-[13px] leading-snug ${
+                  className={`text-sm leading-snug ${
                     isDone
                       ? "text-foreground/35 line-through decoration-foreground/15"
                       : isActive

@@ -313,7 +313,7 @@ export const FilesPanel = memo(function FilesPanel({
           <div
             ref={previewScopeRef}
             tabIndex={-1}
-            className="relative flex min-w-0 flex-1 flex-col outline-none"
+            className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden outline-none"
             onKeyDownCapture={previewSearch.handleKeyDownCapture}
             onPointerDownCapture={(event) => {
               if (!isEditableSearchTarget(event.target)) {
@@ -345,7 +345,7 @@ export const FilesPanel = memo(function FilesPanel({
                   </div>
                   <OpenInEditorButton filePath={selectedPath} />
                 </div>
-                <div ref={previewSearchRootRef} className="min-h-0 flex-1">
+                <div ref={previewSearchRootRef} className="min-h-0 flex-1 overflow-hidden">
                   {reviewFile?.loading ? (
                     <div className="flex h-full flex-col items-center justify-center gap-1 p-4">
                       <Loader2 className="h-3 w-3 animate-spin text-foreground/25" />
@@ -369,7 +369,7 @@ export const FilesPanel = memo(function FilesPanel({
                           </ReactMarkdown>
                         </div>
                       ) : (
-                        <pre className="m-0 min-w-max p-3 font-mono text-[11px] leading-5 text-foreground/85">
+                        <pre className="m-0 min-w-max p-3 font-mono text-sm leading-5 text-foreground/85">
                           {highlightedLines.map((line, index) => (
                             <div key={index} className="flex min-h-5">
                               <span className="w-10 shrink-0 select-none pr-3 text-right tabular-nums text-muted-foreground/35">

@@ -31,7 +31,7 @@ interface ToolGroupBlockProps {
   animate: boolean;
 }
 
-const GROUP_HEADER_BASE_CLASS = "relative flex w-full items-center gap-2 py-1 text-[13px] leading-4 text-muted-foreground";
+const GROUP_HEADER_BASE_CLASS = "relative flex w-full items-center gap-2 py-1 text-sm leading-4 text-muted-foreground";
 const GROUP_HEADER_BUTTON_CLASS = `${GROUP_HEADER_BASE_CLASS} cursor-pointer overflow-hidden text-start transition-colors hover:text-foreground`;
 const MORPH_BASE_MS = 640;
 const MORPH_STAGGER_MS = 32;

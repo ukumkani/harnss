@@ -14,6 +14,7 @@ import {
   Paperclip,
   Square,
 } from "lucide-react";
+import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -188,15 +189,28 @@ export const InputBar = memo(function InputBar({
     const dragWindowHeight = window.innerHeight;
     const minHeight = dragWindowHeight * 0.05;
     const maxHeight = dragWindowHeight * 0.5;
+    let frameId: number | null = null;
+    let pendingHeight = startHeight;
 
-    const handleMove = (moveEvent: MouseEvent) => {
-      const delta = startY - moveEvent.clientY;
-      const next = Math.max(minHeight, Math.min(maxHeight, startHeight + delta));
-      setComposerHeight(next);
+    const applyHeight = () => {
+      frameId = null;
+      flushSync(() => setComposerHeight(pendingHeight));
       window.dispatchEvent(new Event("chat-composer-resize"));
     };
 
+    const handleMove = (moveEvent: MouseEvent) => {
+      const delta = startY - moveEvent.clientY;
+      pendingHeight = Math.max(minHeight, Math.min(maxHeight, startHeight + delta));
+      if (frameId == null) {
+        frameId = requestAnimationFrame(applyHeight);
+      }
+    };
+
     const handleUp = () => {
+      if (frameId != null) {
+        cancelAnimationFrame(frameId);
+        applyHeight();
+      }
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
       document.removeEventListener("mousemove", handleMove);
@@ -822,7 +836,7 @@ export const InputBar = memo(function InputBar({
             onInput={handleEditableInput}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            className={`min-h-[24px] overflow-y-auto text-[14.5px] leading-relaxed outline-none whitespace-pre-wrap wrap-break-word ${
+            className={`min-h-[24px] overflow-y-auto text-sm leading-relaxed outline-none whitespace-pre-wrap wrap-break-word ${
               composerHeight == null ? "max-h-[200px]" : ""
             } ${
               isAwaitingAcpOptions
