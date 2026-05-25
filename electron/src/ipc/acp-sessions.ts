@@ -1,5 +1,7 @@
 import { BrowserWindow, ipcMain } from "electron";
-import { spawn, ChildProcess } from "child_process";
+import fs from "fs";
+import os from "os";
+import { spawn, ChildProcess, execFileSync } from "child_process";
 import { Readable, Writable } from "stream";
 import crypto from "crypto";
 import path from "path";
@@ -56,6 +58,40 @@ async function acpWriteTextFile(params: ACPWriteTextFileParams): Promise<{ fileP
 const ACP_INIT_TIMEOUT_MS = 15000;
 const ACP_START_TIMEOUT_MS = 20000;
 const ACP_AUTH_TIMEOUT_MS = 120000;
+
+function isExecutable(filePath: string): boolean {
+  try {
+    fs.accessSync(filePath, fs.constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function resolveAgentBinary(binary: string): string {
+  const trimmed = binary.trim();
+  if (!trimmed || process.platform === "win32" || path.isAbsolute(trimmed) || trimmed.includes(path.sep)) {
+    return binary;
+  }
+
+  try {
+    const output = execFileSync("which", [trimmed], { encoding: "utf8", timeout: 3000 });
+    const resolved = output
+      .split(/\r?\n/g)
+      .map((line) => line.trim())
+      .find((candidate) => candidate.length > 0 && isExecutable(candidate));
+    if (resolved) return resolved;
+  } catch {
+    // Packaged macOS apps may not inherit the user's shell PATH.
+  }
+
+  for (const dir of [path.join(os.homedir(), ".local", "bin"), "/opt/homebrew/bin", "/usr/local/bin"]) {
+    const candidate = path.join(dir, trimmed);
+    if (isExecutable(candidate)) return candidate;
+  }
+
+  return binary;
+}
 
 interface ACPSessionEntry {
   process: ChildProcess;
@@ -315,8 +351,9 @@ async function createAcpConnection(
 ): Promise<AcpConnectionResult> {
   const acp = await getACP();
   const internalId = crypto.randomUUID();
+  const binary = resolveAgentBinary(agentDef.binary);
 
-  const proc = spawn(agentDef.binary, agentDef.args ?? [], {
+  const proc = spawn(binary, agentDef.args ?? [], {
     stdio: ["pipe", "pipe", "pipe"],
     env: { ...process.env, ...agentDef.env },
     shell: process.platform === "win32",
