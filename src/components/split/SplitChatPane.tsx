@@ -36,6 +36,7 @@ export interface SplitChatPaneProps {
   paneState: SessionPaneState;
   paneControllerCtx: PaneControllerContext;
   isActiveSessionPane: boolean;
+  projectName?: string;
 
   // Layout
   widthPercent: number;
@@ -128,6 +129,7 @@ function SplitChatPaneInner({
   paneState,
   paneControllerCtx,
   isActiveSessionPane,
+  projectName,
   widthPercent,
   handleSharePx,
   minChatWidth,
@@ -233,6 +235,7 @@ function SplitChatPaneInner({
               model={paneController.paneHeaderModel}
               sessionId={paneState.sessionInfo?.sessionId}
               totalCost={paneState.totalCost}
+              projectName={projectName}
               title={session?.title}
               titleGenerating={session?.titleGenerating}
               planMode={paneController.panePlanMode}

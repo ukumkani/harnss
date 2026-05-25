@@ -52,7 +52,9 @@ export interface ToolIslandContextProps {
   resolvedTheme: ResolvedTheme;
   onElementGrab?: (element: GrabbedElement) => void;
   onScrollToToolCall?: (messageId: string) => void;
-  onPreviewFile?: (path: string, rect: DOMRect) => void;
+  onOpenProjectFile?: (path: string) => void;
+  onCloseProjectFile?: (path: string) => void;
+  reviewTargetFiles: string[];
   collapsedRepos: Set<string>;
   onToggleRepoCollapsed: (path: string) => void;
   mcpServerStatuses: McpServerStatus[];

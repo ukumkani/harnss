@@ -23,7 +23,9 @@ interface UseToolIslandContextInput {
   resolvedTheme: ResolvedTheme;
   onElementGrab: (element: GrabbedElement) => void;
   onScrollToToolCall: (messageId: string) => void;
-  onPreviewFile: (path: string, rect: DOMRect) => void;
+  onOpenProjectFile: (path: string) => void;
+  onCloseProjectFile: (path: string) => void;
+  reviewTargetFiles: string[];
   collapsedRepos: Set<string>;
   onToggleRepoCollapsed: (path: string) => void;
   mcpServerStatuses: McpServerStatus[];
@@ -47,7 +49,9 @@ export function useToolIslandContext(input: UseToolIslandContextInput): ToolIsla
       resolvedTheme: input.resolvedTheme,
       onElementGrab: input.onElementGrab,
       onScrollToToolCall: input.onScrollToToolCall,
-      onPreviewFile: input.onPreviewFile,
+      onOpenProjectFile: input.onOpenProjectFile,
+      onCloseProjectFile: input.onCloseProjectFile,
+      reviewTargetFiles: input.reviewTargetFiles,
       collapsedRepos: input.collapsedRepos,
       onToggleRepoCollapsed: input.onToggleRepoCollapsed,
       mcpServerStatuses: input.mcpServerStatuses,
@@ -68,7 +72,9 @@ export function useToolIslandContext(input: UseToolIslandContextInput): ToolIsla
       input.resolvedTheme,
       input.onElementGrab,
       input.onScrollToToolCall,
-      input.onPreviewFile,
+      input.onOpenProjectFile,
+      input.onCloseProjectFile,
+      input.reviewTargetFiles,
       input.collapsedRepos,
       input.onToggleRepoCollapsed,
       input.mcpServerStatuses,

@@ -27,6 +27,7 @@ interface ChatHeaderProps {
   model?: string;
   sessionId?: string;
   totalCost: number;
+  projectName?: string;
   title?: string;
   titleGenerating?: boolean;
   planMode?: boolean;
@@ -48,6 +49,7 @@ export const ChatHeader = memo(function ChatHeader({
   model,
   sessionId,
   totalCost,
+  projectName,
   title,
   titleGenerating,
   planMode,
@@ -136,13 +138,20 @@ export const ChatHeader = memo(function ChatHeader({
           } ${macIslandTitlebarOffsetClass}`}
         />
       ) : title && title !== "New Chat" ? (
-        <span
-          className={`no-drag truncate leading-none text-sm font-medium text-foreground/80 ${
+        <div
+          className={`no-drag min-w-0 flex-1 leading-none ${
             islandLayout ? "relative top-px" : ""
           } ${macIslandTitlebarOffsetClass}`}
         >
-          {title}
-        </span>
+          {projectName && (
+            <div className="truncate text-[10px] font-medium text-muted-foreground/55">
+              {projectName}
+            </div>
+          )}
+          <div className="truncate text-sm font-medium text-foreground/80">
+            {title}
+          </div>
+        </div>
       ) : null}
 
       {/* Session info, split view toggle, and pane close */}

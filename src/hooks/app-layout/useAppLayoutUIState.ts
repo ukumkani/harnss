@@ -5,6 +5,7 @@ import { WELCOME_COMPLETED_KEY } from "@/components/welcome/shared";
 interface UseAppLayoutUIStateInput {
   isNativeGlass: boolean;
   onHideSettings: () => void;
+  hasProjects: boolean;
 }
 
 export function useAppLayoutUIState(input: UseAppLayoutUIStateInput) {
@@ -27,6 +28,12 @@ export function useAppLayoutUIState(input: UseAppLayoutUIStateInput) {
     };
   }, [input.isNativeGlass]);
 
+  useEffect(() => {
+    if (!input.hasProjects || welcomeCompleted) return;
+    localStorage.setItem(WELCOME_COMPLETED_KEY, "true");
+    setWelcomeCompleted(true);
+  }, [input.hasProjects, welcomeCompleted]);
+
   const handleWelcomeComplete = useCallback(() => {
     localStorage.setItem(WELCOME_COMPLETED_KEY, "true");
     setWelcomeCompleted(true);
@@ -36,7 +43,7 @@ export function useAppLayoutUIState(input: UseAppLayoutUIStateInput) {
     localStorage.removeItem(WELCOME_COMPLETED_KEY);
     setWelcomeCompleted(false);
     input.onHideSettings();
-  }, [input]);
+  }, [input.onHideSettings]);
 
   const handleElementGrab = useCallback((element: GrabbedElement) => {
     setGrabbedElements((prev) => [...prev, element]);

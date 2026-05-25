@@ -91,7 +91,7 @@ export function AppLayout() {
   } = agentState;
   const {
     activeProjectId, activeProjectPath, activeSpaceProject, activeSpaceTerminalCwd, showThinking,
-    hasProjects, isSpaceSwitching, showToolPicker, hasRightPanel,
+    hasProjects, projectsLoaded, projectsLoadError, isSpaceSwitching, showToolPicker, hasRightPanel,
     activeTodos, bgAgents, hasTodos, hasAgents, availableContextual,
     glassSupported, macLiquidGlassSupported, liveMacBackgroundEffect, devFillEnabled, jiraBoardEnabled,
     draftSpaceId,
@@ -127,6 +127,7 @@ export function AppLayout() {
   const { isLightGlass, isNativeGlass, chatFadeStrength, titlebarSurfaceColor, topFadeBackground, bottomFadeBackground } = glassTheme;
   const layoutUI = useAppLayoutUIState({
     isNativeGlass,
+    hasProjects,
     onHideSettings: () => setShowSettings(false),
   });
   const {
@@ -288,6 +289,19 @@ export function AppLayout() {
     bottomHeight: settings.bottomToolsHeight,
     bottomWidthFractions: settings.bottomToolsSplitRatios,
   }, mainCombinedWorkspaceWidthRef);
+  const [reviewTargetFiles, setReviewTargetFiles] = useState<string[]>([]);
+  const handleOpenProjectFile = useCallback((filePath: string) => {
+    setReviewTargetFiles((current) => [
+      filePath,
+      ...current.filter((entry) => entry !== filePath),
+    ]);
+
+    if (mainToolWorkspace.getToolIsland("files")) return;
+    mainToolWorkspace.openToolIsland("files", mainToolWorkspace.getRememberedDock("files") ?? "top");
+  }, [mainToolWorkspace]);
+  const handleCloseProjectFile = useCallback((filePath: string) => {
+    setReviewTargetFiles((current) => current.filter((entry) => entry !== filePath));
+  }, []);
   const mainToolAreaRef = useRef<HTMLDivElement>(null);
   const mainTopToolColumnRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const mainBottomRowRef = useRef<HTMLDivElement>(null);
@@ -956,7 +970,9 @@ export function AppLayout() {
     resolvedTheme,
     onElementGrab: handleElementGrab,
     onScrollToToolCall: setScrollToMessageId,
-    onPreviewFile: handlePreviewFile,
+    onOpenProjectFile: handleOpenProjectFile,
+    onCloseProjectFile: handleCloseProjectFile,
+    reviewTargetFiles,
     collapsedRepos: settings.collapsedRepos,
     onToggleRepoCollapsed: settings.toggleRepoCollapsed,
     mcpServerStatuses: manager.mcpServerStatuses,
@@ -1472,6 +1488,7 @@ export function AppLayout() {
                   model={activePaneCtrl?.paneHeaderModel}
                   sessionId={manager.sessionInfo?.sessionId}
                   totalCost={manager.totalCost}
+                  projectName={activeSessionProject?.name}
                   title={manager.activeSession?.title}
                   titleGenerating={manager.activeSession?.titleGenerating}
                   planMode={activePaneCtrl?.panePlanMode ?? settings.planMode}
@@ -1775,7 +1792,7 @@ export function AppLayout() {
         onClose={handleClosePreview}
       />
       {/* Welcome wizard — full-screen overlay on first run */}
-      {!welcomeCompleted && (
+      {projectsLoaded && !projectsLoadError && !hasProjects && !welcomeCompleted && (
         <WelcomeWizard
           glassSupported={glassSupported}
           permissionMode={settings.permissionMode}

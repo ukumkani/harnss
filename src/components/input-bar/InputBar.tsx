@@ -157,6 +157,7 @@ export const InputBar = memo(function InputBar({
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [editingAttachment, setEditingAttachment] = useState<ImageAttachment | null>(null);
+  const [composerHeight, setComposerHeight] = useState<number | null>(null);
 
   // Deep folder confirmation
   const [showDeepFolderConfirm, setShowDeepFolderConfirm] = useState(false);
@@ -176,6 +177,35 @@ export const InputBar = memo(function InputBar({
   const editableRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasContentRef = useRef(false);
+
+  const handleResizeStart = useCallback((event: React.MouseEvent) => {
+    const editable = editableRef.current;
+    if (!editable) return;
+
+    event.preventDefault();
+    const startY = event.clientY;
+    const startHeight = editable.getBoundingClientRect().height;
+
+    const handleMove = (moveEvent: MouseEvent) => {
+      const delta = startY - moveEvent.clientY;
+      const minHeight = window.innerHeight * 0.1;
+      const maxHeight = window.innerHeight * 0.3;
+      const next = Math.max(minHeight, Math.min(maxHeight, startHeight + delta));
+      setComposerHeight(next);
+    };
+
+    const handleUp = () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", handleUp);
+    };
+
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseup", handleUp);
+  }, []);
 
   // ── Derived engine state ──
   const isACPAgent = selectedAgent != null && selectedAgent.engine === "acp";
@@ -721,7 +751,7 @@ export const InputBar = memo(function InputBar({
         onChange={handleFileInputChange}
       />
       <div
-        className={`pointer-events-auto rounded-2xl border bg-black/[0.09] dark:bg-white/[0.08] shadow-[0_2px_12px_-3px_rgba(0,0,0,0.06),0_8px_24px_-8px_rgba(0,0,0,0.04)] backdrop-blur-xl ring-1 ring-inset ring-white/[0.06] transition-all duration-200 ease-out focus-within:shadow-[0_2px_16px_-3px_rgba(0,0,0,0.08),0_12px_32px_-8px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_12px_-3px_rgba(0,0,0,0.35),0_8px_24px_-8px_rgba(0,0,0,0.2)] dark:focus-within:shadow-[0_2px_16px_-3px_rgba(0,0,0,0.4),0_12px_32px_-8px_rgba(0,0,0,0.25)] ${
+        className={`group pointer-events-auto relative rounded-2xl border bg-black/[0.09] dark:bg-white/[0.08] shadow-[0_2px_12px_-3px_rgba(0,0,0,0.06),0_8px_24px_-8px_rgba(0,0,0,0.04)] backdrop-blur-xl ring-1 ring-inset ring-white/[0.06] transition-all duration-200 ease-out focus-within:shadow-[0_2px_16px_-3px_rgba(0,0,0,0.08),0_12px_32px_-8px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_12px_-3px_rgba(0,0,0,0.35),0_8px_24px_-8px_rgba(0,0,0,0.2)] dark:focus-within:shadow-[0_2px_16px_-3px_rgba(0,0,0,0.4),0_12px_32px_-8px_rgba(0,0,0,0.25)] ${
           isDragging
             ? "border-primary/50 bg-primary/5 ring-primary/25"
             : speech.isListening
@@ -732,6 +762,14 @@ export const InputBar = memo(function InputBar({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
+        <div
+          className="absolute inset-x-4 top-0 z-10 flex h-2 cursor-row-resize items-start justify-center"
+          onMouseDown={handleResizeStart}
+          title="Resize composer"
+        >
+          <div className="mt-1 h-0.5 w-10 rounded-full bg-foreground/10 opacity-0 transition-opacity group-hover:opacity-100" />
+        </div>
+
         {/* Mention popup */}
         {mention.showMentions && (
           <MentionPicker
@@ -782,11 +820,14 @@ export const InputBar = memo(function InputBar({
             onInput={handleEditableInput}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            className={`min-h-[24px] max-h-[200px] overflow-y-auto text-[14.5px] leading-relaxed outline-none whitespace-pre-wrap wrap-break-word ${
+            className={`min-h-[24px] overflow-y-auto text-[14.5px] leading-relaxed outline-none whitespace-pre-wrap wrap-break-word ${
+              composerHeight == null ? "max-h-[200px]" : ""
+            } ${
               isAwaitingAcpOptions
                 ? "cursor-wait text-muted-foreground/60"
                 : "text-foreground"
             }`}
+            style={composerHeight == null ? undefined : { height: composerHeight }}
             role="textbox"
             aria-multiline="true"
             spellCheck={false}

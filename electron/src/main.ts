@@ -1,24 +1,10 @@
-import { execSync } from "child_process";
+import { execFile } from "child_process";
 import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, nativeTheme, session, shell, systemPreferences, webContents } from "electron";
 import path from "path";
 import http from "http";
 import contextMenu from "electron-context-menu";
 import { getBootstrapMinWindowWidth } from "../../src/lib/layout/constants";
 
-// Packaged .app bundles launched from Finder get a minimal PATH (/usr/bin:/bin).
-// Inherit the user's shell PATH so child processes (SDK's `node`, git, etc.) resolve.
-if (process.platform !== "win32") {
-  try {
-    const shell = process.env.SHELL || "/bin/zsh";
-    const shellPath = execSync(`${shell} -ilc 'echo -n "$PATH"'`, {
-      encoding: "utf8",
-      timeout: 5000,
-    });
-    if (shellPath) process.env.PATH = shellPath;
-  } catch {
-    // Fall through — keep whatever PATH we already have
-  }
-}
 import { log } from "./lib/logger";
 import { reportError } from "./lib/error-utils";
 import { migrateFromOpenAcpUi } from "./lib/migration";
@@ -211,6 +197,69 @@ function createWindow(): void {
       applyMacBackgroundEffect(pendingMacBackgroundEffect);
     });
   }
+}
+
+function refreshShellPath(): Promise<void> {
+  if (process.platform === "win32") return Promise.resolve();
+
+  return new Promise((resolve) => {
+    const shellPath = process.env.SHELL || "/bin/zsh";
+    execFile(shellPath, ["-ilc", 'echo -n "$PATH"'], { timeout: 5000 }, (error, stdout) => {
+      if (!error && stdout) {
+        process.env.PATH = stdout;
+        log("STARTUP", "Shell PATH refreshed");
+      }
+      resolve();
+    });
+  });
+}
+
+function configurePermissions(): void {
+  // Allow microphone access for Whisper voice dictation (getUserMedia in renderer)
+  session.defaultSession.setPermissionRequestHandler(
+    (webContents, permission, callback) => {
+      // Only grant privileged permissions to the app's main renderer, not webviews.
+      if (isMainRendererPermissionRequest(webContents) && (permission === "media" || permission === "notifications")) {
+        callback(true);
+        return;
+      }
+      callback(false);
+    },
+  );
+  session.defaultSession.setPermissionCheckHandler(
+    (webContents, permission) => {
+      if (isMainRendererPermissionRequest(webContents) && (permission === "media" || permission === "notifications")) {
+        return true;
+      }
+      return false;
+    },
+  );
+}
+
+function registerDevToolsShortcuts(): void {
+  const shortcuts = ["CommandOrControl+Alt+I", "F12", "CommandOrControl+Shift+J"];
+  for (const shortcut of shortcuts) {
+    const ok = globalShortcut.register(shortcut, () => {
+      log("DEVTOOLS", `Shortcut ${shortcut} triggered`);
+      openDevToolsWindow();
+    });
+    log("DEVTOOLS", `Register ${shortcut}: ${ok ? "OK" : "FAILED"}`);
+  }
+}
+
+function runStartupJoin(tasks: Array<{ name: string; run: () => Promise<void> | void }>): void {
+  void Promise.allSettled(
+    tasks.map(async (task) => {
+      await task.run();
+      log("STARTUP", `Async step complete: ${task.name}`);
+    }),
+  ).then((results) => {
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        reportError("STARTUP_ASYNC", result.reason, { step: tasks[index]?.name });
+      }
+    });
+  });
 }
 
 // Renderer uses this to decide whether the transparency toggle is available.
@@ -445,7 +494,9 @@ ipcMain.handle("speech:request-mic-permission", async () => {
 });
 
 app.whenReady().then(() => {
-  // Migrate data from old "OpenACP UI" app directory before anything reads it
+  // Startup fork/join split:
+  // Serial: migrate data, read settings that affect native window shape, create the first window.
+  // Async: shell PATH refresh, updater checks, analytics, dock icon, dev shortcuts.
   migrateFromOpenAcpUi();
   if (process.platform === "darwin") {
     pendingMacBackgroundEffect = resolveMacBackgroundEffect(
@@ -454,47 +505,24 @@ app.whenReady().then(() => {
   }
 
   createWindow();
-  initAutoUpdater(getMainWindow);
-  initPreReleaseCheck(getMainWindow);
+  configurePermissions();
 
-  // Initialize PostHog analytics (if enabled in settings) — fire-and-forget to avoid blocking startup
-  initPostHog().catch((err) => {
-    reportError("POSTHOG", err, { context: "startup-init" });
-  });
-
-  // Allow microphone access for Whisper voice dictation (getUserMedia in renderer)
-  session.defaultSession.setPermissionRequestHandler(
-    (webContents, permission, callback) => {
-      // Only grant privileged permissions to the app's main renderer, not webviews.
-      if (isMainRendererPermissionRequest(webContents) && (permission === "media" || permission === "notifications")) {
-        callback(true);
-        return;
-      }
-      callback(false);
+  runStartupJoin([
+    { name: "shell-path", run: refreshShellPath },
+    { name: "auto-updater", run: () => initAutoUpdater(getMainWindow) },
+    { name: "prerelease-check", run: () => initPreReleaseCheck(getMainWindow) },
+    { name: "posthog", run: () => initPostHog() },
+    {
+      name: "dock-icon",
+      run: () => {
+        // Set dock icon in dev mode — packaged builds get it from the .app bundle
+        if (!app.isPackaged && process.platform === "darwin" && app.dock) {
+          app.dock.setIcon(path.join(__dirname, "../../build/icon.png"));
+        }
+      },
     },
-  );
-  session.defaultSession.setPermissionCheckHandler(
-    (webContents, permission) => {
-      if (isMainRendererPermissionRequest(webContents) && (permission === "media" || permission === "notifications")) {
-        return true;
-      }
-      return false;
-    },
-  );
-
-  // Set dock icon in dev mode — packaged builds get it from the .app bundle
-  if (!app.isPackaged && process.platform === "darwin" && app.dock) {
-    app.dock.setIcon(path.join(__dirname, "../../build/icon.png"));
-  }
-
-  const shortcuts = ["CommandOrControl+Alt+I", "F12", "CommandOrControl+Shift+J"];
-  for (const shortcut of shortcuts) {
-    const ok = globalShortcut.register(shortcut, () => {
-      log("DEVTOOLS", `Shortcut ${shortcut} triggered`);
-      openDevToolsWindow();
-    });
-    log("DEVTOOLS", `Register ${shortcut}: ${ok ? "OK" : "FAILED"}`);
-  }
+    { name: "devtools-shortcuts", run: registerDevToolsShortcuts },
+  ]);
 });
 
 app.on("will-quit", (event) => {
