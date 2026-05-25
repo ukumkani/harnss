@@ -1526,6 +1526,7 @@ export function AppLayout() {
               <div
                 className={`pointer-events-none absolute inset-x-0 bottom-0 z-[5] transition-opacity duration-200 ${isIsland ? "h-24" : "h-28"}`}
                 style={{
+                  bottom: "var(--chat-composer-inset, 0px)",
                   opacity: chatFadeStrength,
                   background: bottomFadeBackground,
                 }}

@@ -47,6 +47,7 @@ const CHAT_TOP_PADDING_PX = 56;
 const CHAT_BOTTOM_PADDING_PX = 144;
 const CHAT_EXTRA_BOTTOM_PADDING_PX = 280;
 const CHAT_COMPOSER_CLEARANCE_PX = 24;
+const CHAT_COMPOSER_INSET_VAR = "--chat-composer-inset";
 const NARROW_CHAT_MESSAGE_WIDTH_THRESHOLD_PX = 900;
 // Progressive rendering: render bottom rows immediately, hydrate older rows in background
 const INITIAL_RENDER_ROWS = 20;
@@ -394,6 +395,7 @@ function ChatViewContent({
     if (composerInset <= 0) return fallbackPadding;
     return Math.max(fallbackPadding, composerInset + CHAT_COMPOSER_CLEARANCE_PX);
   }, [composerInset, extraBottomPadding]);
+  const fallbackBottomPadding = extraBottomPadding ? CHAT_EXTRA_BOTTOM_PADDING_PX : CHAT_BOTTOM_PADDING_PX;
 
   // ── Single-pass partition: queued vs non-queued (js-combine-iterations) ──
   const { nonQueuedMessages, queuedMessages } = useMemo(() => {
@@ -673,12 +675,14 @@ function ChatViewContent({
 
     const composer = el.parentElement?.querySelector<HTMLElement>("[data-chat-composer]");
     if (!composer) {
+      el.parentElement?.style.setProperty(CHAT_COMPOSER_INSET_VAR, "0px");
       setComposerInset((prev) => (prev === 0 ? prev : 0));
       return;
     }
 
     const updateComposerInset = () => {
       const nextInset = Math.ceil(composer.getBoundingClientRect().height);
+      el.parentElement?.style.setProperty(CHAT_COMPOSER_INSET_VAR, `${nextInset}px`);
       setComposerInset((prev) => (prev === nextInset ? prev : nextInset));
     };
 
@@ -695,6 +699,7 @@ function ChatViewContent({
     return () => {
       observer.disconnect();
       window.removeEventListener("chat-composer-resize", syncComposerInset);
+      el.parentElement?.style.removeProperty(CHAT_COMPOSER_INSET_VAR);
     };
   }, [contentReady, followBottomNow]);
 
@@ -845,7 +850,7 @@ function ChatViewContent({
 
   const chatContentStyle = {
     paddingTop: `${CHAT_TOP_PADDING_PX}px`,
-    paddingBottom: `${bottomPadding}px`,
+    paddingBottom: `max(${fallbackBottomPadding}px, calc(var(${CHAT_COMPOSER_INSET_VAR}, ${composerInset}px) + ${CHAT_COMPOSER_CLEARANCE_PX}px))`,
     "--chat-assistant-message-max-width": useFullWidthMessages ? "100%" : "85%",
     "--chat-user-message-max-width": useFullWidthMessages ? "100%" : "80%",
   } as CSSProperties;

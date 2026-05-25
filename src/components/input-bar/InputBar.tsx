@@ -836,7 +836,7 @@ export const InputBar = memo(function InputBar({
             onInput={handleEditableInput}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            className={`min-h-[24px] overflow-y-auto text-[14.5px] leading-relaxed outline-none whitespace-pre-wrap wrap-break-word ${
+            className={`min-h-[24px] overflow-y-auto text-sm leading-relaxed outline-none whitespace-pre-wrap wrap-break-word ${
               composerHeight == null ? "max-h-[200px]" : ""
             } ${
               isAwaitingAcpOptions
