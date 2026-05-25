@@ -311,15 +311,12 @@ export const FilesPanel = memo(function FilesPanel({
                 <div className="flex h-8 shrink-0 items-center gap-2 border-b border-border/50 px-3">
                   <div className="min-w-0 flex-1">
                     <div
-                      className="truncate text-xs font-medium text-foreground/70"
+                      className="truncate text-xs font-medium text-muted-foreground/50"
                       title={selectedPath}
                     >
                       {selectedDisplayPath}
                     </div>
                   </div>
-                  <span className="shrink-0 rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                    {selectedLanguage}
-                  </span>
                   <OpenInEditorButton filePath={selectedPath} />
                 </div>
                 {reviewFile?.loading ? (
