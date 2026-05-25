@@ -3,7 +3,6 @@ import { FileText, Loader2, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { PanelHeader } from "@/components/PanelHeader";
 import { RegionSearchOverlay } from "@/components/RegionSearchOverlay";
 import { OpenInEditorButton } from "./OpenInEditorButton";
@@ -362,7 +361,7 @@ export const FilesPanel = memo(function FilesPanel({
                       </p>
                     </div>
                   ) : (
-                    <ScrollArea className="h-full">
+                    <div className="h-full overflow-auto">
                       {selectedLanguage === "markdown" ? (
                         <div className="prose dark:prose-invert prose-sm max-w-none p-4 text-foreground/80 wrap-break-word">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -381,7 +380,7 @@ export const FilesPanel = memo(function FilesPanel({
                           ))}
                         </pre>
                       )}
-                    </ScrollArea>
+                    </div>
                   )}
                 </div>
               </>
