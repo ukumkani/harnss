@@ -174,10 +174,9 @@ export const FilesPanel = memo(function FilesPanel({
     });
   }, [manualFiles]);
 
-  const latestManualFile = manualFiles[0];
   useEffect(() => {
-    if (latestManualFile) setSelectedPath(latestManualFile);
-  }, [latestManualFile]);
+    if (manualFiles[0]) setSelectedPath(manualFiles[0]);
+  }, [manualFiles]);
 
   const files = useMemo(() => {
     const derivedFiles = data?.files ?? [];
@@ -323,7 +322,7 @@ export const FilesPanel = memo(function FilesPanel({
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="shrink-0 overflow-x-auto overflow-y-hidden border-b border-border/50 [scrollbar-width:thin]">
+          <div className="scrollbar-none shrink-0 overflow-x-auto overflow-y-hidden border-b border-border/50">
             <div className="flex w-max items-center gap-1 px-2 py-1">
               {files.map((file) => {
                 const { fileName } = getRelativePath(file.path, cwd);

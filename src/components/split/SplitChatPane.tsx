@@ -47,7 +47,6 @@ export interface SplitChatPaneProps {
   chatFadeStrength: number;
   topFadeBackground: string;
   titlebarSurfaceColor: string;
-  bottomFadeBackground: string;
   isFocused: boolean;
 
   // Sidebar (only index 0 shows)
@@ -138,7 +137,6 @@ function SplitChatPaneInner({
   chatFadeStrength,
   topFadeBackground,
   titlebarSurfaceColor,
-  bottomFadeBackground,
   isFocused,
   sidebarOpen,
   onToggleSidebar,
@@ -258,14 +256,6 @@ function SplitChatPaneInner({
             onRevert={onRevert}
             onFullRevert={onFullRevert}
             onTopScrollProgress={onTopScrollProgress}
-          />
-          <div
-            className={`pointer-events-none absolute inset-x-0 bottom-0 z-[5] transition-opacity duration-200 ${isIsland ? "h-24" : "h-28"}`}
-            style={{
-              bottom: "var(--chat-composer-inset, 0px)",
-              opacity: chatFadeStrength,
-              background: bottomFadeBackground,
-            }}
           />
           <div data-chat-composer className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
             <BottomComposer

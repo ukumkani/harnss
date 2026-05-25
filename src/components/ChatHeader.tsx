@@ -144,7 +144,7 @@ export const ChatHeader = memo(function ChatHeader({
           } ${macIslandTitlebarOffsetClass}`}
         >
           {projectName && (
-            <div className="truncate text-[10px] font-medium text-muted-foreground/55">
+            <div className="truncate text-[10px] font-semibold tracking-wider text-muted-foreground/70 uppercase">
               {projectName}
             </div>
           )}

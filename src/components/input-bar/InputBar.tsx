@@ -15,7 +15,6 @@ import {
   Paperclip,
   Square,
 } from "lucide-react";
-import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -35,7 +34,7 @@ import type {
   EngineId,
   SlashCommand,
 } from "@/types";
-import { BOTTOM_CHAT_MAX_WIDTH_CLASS, CHAT_CONTENT_RESIZED_EVENT } from "@/lib/layout/constants";
+import { BOTTOM_CHAT_MAX_WIDTH_CLASS } from "@/lib/layout/constants";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { resolveModelValue } from "@/lib/model-utils";
 import { ImageAnnotationEditor } from "@/components/ImageAnnotationEditor";
@@ -70,13 +69,12 @@ function getWindowComposerHeight(ratio: number): number | null {
   return height * clampedRatio;
 }
 
-function dispatchComposerLayoutResize(includeWindowResize = false): void {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new Event("chat-composer-resize"));
-  window.dispatchEvent(new Event(CHAT_CONTENT_RESIZED_EVENT));
-  if (includeWindowResize) {
-    window.dispatchEvent(new Event("resize"));
-  }
+function getWindowComposerHeightBounds(): { min: number; max: number } | null {
+  if (typeof window === "undefined" || window.innerHeight <= 0) return null;
+  return {
+    min: window.innerHeight * MIN_COMPOSER_HEIGHT_RATIO,
+    max: window.innerHeight * MAX_COMPOSER_HEIGHT_RATIO,
+  };
 }
 
 export interface InputBarProps {
@@ -182,6 +180,7 @@ export const InputBar = memo(function InputBar({
   const [composerHeight, setComposerHeight] = useState<number | null>(() =>
     getWindowComposerHeight(MIN_COMPOSER_HEIGHT_RATIO),
   );
+  const [composerScrollable, setComposerScrollable] = useState(false);
   const composerHeightRatioRef = useRef(MIN_COMPOSER_HEIGHT_RATIO);
 
   // Deep folder confirmation
@@ -203,14 +202,38 @@ export const InputBar = memo(function InputBar({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasContentRef = useRef(false);
 
+  const setComposerToMinHeight = useCallback(() => {
+    const minHeight = getWindowComposerHeight(MIN_COMPOSER_HEIGHT_RATIO);
+    if (minHeight == null) return;
+    composerHeightRatioRef.current = MIN_COMPOSER_HEIGHT_RATIO;
+    setComposerScrollable(false);
+    setComposerHeight(minHeight);
+  }, []);
+
+  const fitComposerToContent = useCallback((editable: HTMLDivElement) => {
+    const bounds = getWindowComposerHeightBounds();
+    if (!bounds) return;
+    const previousHeight = editable.style.height;
+    editable.style.height = "auto";
+    const contentHeight = editable.scrollHeight;
+    editable.style.height = previousHeight;
+    const nextHeight = Math.max(bounds.min, Math.min(bounds.max, contentHeight));
+    composerHeightRatioRef.current = window.innerHeight > 0
+      ? Math.max(MIN_COMPOSER_HEIGHT_RATIO, Math.min(MAX_COMPOSER_HEIGHT_RATIO, nextHeight / window.innerHeight))
+      : MIN_COMPOSER_HEIGHT_RATIO;
+    setComposerScrollable(contentHeight > bounds.max);
+    setComposerHeight(nextHeight);
+  }, []);
+
   useEffect(() => {
-    const handleWindowResize = () => {
-      const nextHeight = getWindowComposerHeight(composerHeightRatioRef.current);
-      if (nextHeight == null) return;
-      setComposerHeight(nextHeight);
-      requestAnimationFrame(() => {
-        dispatchComposerLayoutResize();
-      });
+    const handleWindowResize = (event?: Event) => {
+      if (event && !event.isTrusted) return;
+      const editable = editableRef.current;
+      if (editable && hasContentRef.current) {
+        fitComposerToContent(editable);
+        return;
+      }
+      setComposerToMinHeight();
     };
 
     window.addEventListener("resize", handleWindowResize);
@@ -218,57 +241,7 @@ export const InputBar = memo(function InputBar({
     return () => {
       window.removeEventListener("resize", handleWindowResize);
     };
-  }, []);
-
-  const handleResizeStart = useCallback((event: React.MouseEvent) => {
-    const editable = editableRef.current;
-    if (!editable) return;
-
-    event.preventDefault();
-    const startY = event.clientY;
-    const startHeight = editable.getBoundingClientRect().height;
-    const dragWindowHeight = window.innerHeight;
-    const minHeight = dragWindowHeight * 0.05;
-    const maxHeight = dragWindowHeight * 0.5;
-    let frameId: number | null = null;
-    let pendingHeight = startHeight;
-    let pendingRatio = composerHeightRatioRef.current;
-
-    const applyHeight = () => {
-      frameId = null;
-      composerHeightRatioRef.current = pendingRatio;
-      flushSync(() => setComposerHeight(pendingHeight));
-      dispatchComposerLayoutResize(true);
-    };
-
-    const handleMove = (moveEvent: MouseEvent) => {
-      const delta = startY - moveEvent.clientY;
-      pendingHeight = Math.max(minHeight, Math.min(maxHeight, startHeight + delta));
-      pendingRatio = dragWindowHeight > 0
-        ? Math.max(MIN_COMPOSER_HEIGHT_RATIO, Math.min(MAX_COMPOSER_HEIGHT_RATIO, pendingHeight / dragWindowHeight))
-        : MIN_COMPOSER_HEIGHT_RATIO;
-      if (frameId == null) {
-        frameId = requestAnimationFrame(applyHeight);
-      }
-    };
-
-    const handleUp = () => {
-      if (frameId != null) {
-        cancelAnimationFrame(frameId);
-        applyHeight();
-      }
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-      document.removeEventListener("mousemove", handleMove);
-      document.removeEventListener("mouseup", handleUp);
-    };
-
-    document.body.style.cursor = "row-resize";
-    document.body.style.userSelect = "none";
-    dispatchComposerLayoutResize(true);
-    document.addEventListener("mousemove", handleMove);
-    document.addEventListener("mouseup", handleUp);
-  }, []);
+  }, [fitComposerToContent, setComposerToMinHeight]);
 
   // ── Derived engine state ──
   const isACPAgent = selectedAgent != null && selectedAgent.engine === "acp";
@@ -340,8 +313,9 @@ export const InputBar = memo(function InputBar({
       setAttachments([]);
       mention.closeMentions();
       command.setShowCommands(false);
+      setComposerToMinHeight();
     },
-    [mention.closeMentions, command.setShowCommands],
+    [mention.closeMentions, command.setShowCommands, setComposerToMinHeight],
   );
 
   // ── Image attachments ──
@@ -692,6 +666,7 @@ export const InputBar = memo(function InputBar({
         hasContentRef.current = true;
         setHasContent(true);
       }
+      fitComposerToContent(el);
 
       // Detect @ and / triggers
       const sel = window.getSelection();
@@ -710,7 +685,7 @@ export const InputBar = memo(function InputBar({
       // Slash command detection
       command.detectCommandTrigger(sanitizedText);
     },
-    [mention, command],
+    [command, fitComposerToContent, mention],
   );
 
   // ── Paste / drag-drop handlers ──
@@ -814,25 +789,17 @@ export const InputBar = memo(function InputBar({
         onChange={handleFileInputChange}
       />
       <div
-        className={`group pointer-events-auto relative rounded-2xl border bg-black/[0.09] dark:bg-white/[0.08] shadow-[0_2px_12px_-3px_rgba(0,0,0,0.06),0_8px_24px_-8px_rgba(0,0,0,0.04)] backdrop-blur-xl ring-1 ring-inset ring-white/[0.06] transition-all duration-200 ease-out focus-within:shadow-[0_2px_16px_-3px_rgba(0,0,0,0.08),0_12px_32px_-8px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_12px_-3px_rgba(0,0,0,0.35),0_8px_24px_-8px_rgba(0,0,0,0.2)] dark:focus-within:shadow-[0_2px_16px_-3px_rgba(0,0,0,0.4),0_12px_32px_-8px_rgba(0,0,0,0.25)] ${
+        className={`group pointer-events-auto relative rounded-2xl border transition-all duration-200 ease-out ${
           isDragging
             ? "border-primary/50 bg-primary/5 ring-primary/25"
             : speech.isListening
-              ? "border-red-400/40 ring-red-400/20"
-              : "border-border/35 focus-within:border-border/60"
+              ? "border-red-400/40 bg-background ring-red-400/20"
+              : "border-border/35 bg-background focus-within:border-border/60"
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <div
-          className="absolute inset-x-4 top-0 z-10 flex h-2 cursor-row-resize items-start justify-center"
-          onMouseDown={handleResizeStart}
-          title="Resize composer"
-        >
-          <div className="mt-1 h-0.5 w-10 rounded-full bg-foreground/10 opacity-0 transition-opacity group-hover:opacity-100" />
-        </div>
-
         {/* Mention popup */}
         {mention.showMentions && (
           <MentionPicker
@@ -883,9 +850,7 @@ export const InputBar = memo(function InputBar({
             onInput={handleEditableInput}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            className={`min-h-[24px] overflow-y-auto text-sm leading-relaxed outline-none whitespace-pre-wrap wrap-break-word ${
-              composerHeight == null ? "max-h-[200px]" : ""
-            } ${
+            className={`min-h-[24px] ${composerScrollable ? "overflow-y-auto" : "overflow-y-hidden"} text-sm leading-relaxed outline-none whitespace-pre-wrap wrap-break-word ${
               isAwaitingAcpOptions
                 ? "cursor-wait text-muted-foreground/60"
                 : "text-foreground"
