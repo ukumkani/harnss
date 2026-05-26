@@ -290,7 +290,9 @@ export function AppLayout() {
     bottomWidthFractions: settings.bottomToolsSplitRatios,
   }, mainCombinedWorkspaceWidthRef);
   const [reviewTargetFiles, setReviewTargetFiles] = useState<string[]>([]);
+  const [reviewTargetOpenVersion, setReviewTargetOpenVersion] = useState(0);
   const handleOpenProjectFile = useCallback((filePath: string) => {
+    setReviewTargetOpenVersion((current) => current + 1);
     setReviewTargetFiles((current) => [
       filePath,
       ...current.filter((entry) => entry !== filePath),
@@ -973,6 +975,7 @@ export function AppLayout() {
     onOpenProjectFile: handleOpenProjectFile,
     onCloseProjectFile: handleCloseProjectFile,
     reviewTargetFiles,
+    reviewTargetOpenVersion,
     collapsedRepos: settings.collapsedRepos,
     onToggleRepoCollapsed: settings.toggleRepoCollapsed,
     mcpServerStatuses: manager.mcpServerStatuses,

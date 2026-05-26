@@ -30,6 +30,7 @@ interface FilesPanelProps {
   cwd?: string;
   activeEngine?: EngineId;
   manualFiles?: string[];
+  manualFileOpenVersion?: number;
   onCloseManualFile?: (filePath: string) => void;
   onScrollToToolCall?: (messageId: string) => void;
   enabled?: boolean;
@@ -58,6 +59,7 @@ export const FilesPanel = memo(function FilesPanel({
   cwd,
   activeEngine,
   manualFiles = [],
+  manualFileOpenVersion = 0,
   onCloseManualFile,
   onScrollToToolCall,
   enabled = true,
@@ -77,6 +79,7 @@ export const FilesPanel = memo(function FilesPanel({
   const [highlightedLineTokens, setHighlightedLineTokens] = useState<HighlightLine[]>([]);
   const previewScopeRef = useRef<HTMLDivElement>(null);
   const previewSearchRootRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef(new Map<string, HTMLDivElement>());
   const filePanelWorkerRef = useRef<Worker | null>(null);
   const syntaxWorkerRef = useRef<Worker | null>(null);
 
@@ -176,7 +179,7 @@ export const FilesPanel = memo(function FilesPanel({
 
   useEffect(() => {
     if (manualFiles[0]) setSelectedPath(manualFiles[0]);
-  }, [manualFiles]);
+  }, [manualFileOpenVersion, manualFiles]);
 
   const files = useMemo(() => {
     const derivedFiles = data?.files ?? [];
@@ -207,6 +210,11 @@ export const FilesPanel = memo(function FilesPanel({
         : files[0].path
     ));
   }, [files]);
+
+  useEffect(() => {
+    const selectedTab = selectedPath ? tabRefs.current.get(selectedPath) : null;
+    selectedTab?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [selectedPath]);
 
   useEffect(() => {
     if (!selectedPath) {
@@ -240,7 +248,7 @@ export const FilesPanel = memo(function FilesPanel({
     return () => {
       cancelled = true;
     };
-  }, [selectedPath]);
+  }, [manualFileOpenVersion, selectedPath]);
 
   useEffect(() => {
     return () => {
@@ -331,6 +339,10 @@ export const FilesPanel = memo(function FilesPanel({
                 return (
                   <div
                     key={file.path}
+                    ref={(element) => {
+                      if (element) tabRefs.current.set(file.path, element);
+                      else tabRefs.current.delete(file.path);
+                    }}
                     className={`group flex h-7 max-w-44 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2 text-start transition-colors hover:bg-foreground/[0.04] ${
                       isSelected ? "bg-foreground/[0.08] text-foreground" : "text-foreground/65"
                     }`}

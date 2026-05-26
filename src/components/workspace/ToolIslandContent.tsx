@@ -53,6 +53,7 @@ export interface ToolIslandContentProps {
   onOpenProjectFile?: (path: string) => void;
   onCloseProjectFile?: (path: string) => void;
   reviewTargetFiles: string[];
+  reviewTargetOpenVersion?: number;
   collapsedRepos: Set<string>;
   onToggleRepoCollapsed: (path: string) => void;
   // MCP panel
@@ -89,6 +90,7 @@ export function ToolIslandContent({
   onOpenProjectFile,
   onCloseProjectFile,
   reviewTargetFiles,
+  reviewTargetOpenVersion,
   collapsedRepos,
   onToggleRepoCollapsed,
   mcpServerStatuses,
@@ -141,6 +143,7 @@ export function ToolIslandContent({
           cwd={projectPath}
           activeEngine={activeEngine}
           manualFiles={reviewTargetFiles}
+          manualFileOpenVersion={reviewTargetOpenVersion}
           onCloseManualFile={onCloseProjectFile}
           onScrollToToolCall={onScrollToToolCall}
           enabled={true}

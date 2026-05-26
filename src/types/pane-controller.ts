@@ -55,6 +55,7 @@ export interface ToolIslandContextProps {
   onOpenProjectFile?: (path: string) => void;
   onCloseProjectFile?: (path: string) => void;
   reviewTargetFiles: string[];
+  reviewTargetOpenVersion?: number;
   collapsedRepos: Set<string>;
   onToggleRepoCollapsed: (path: string) => void;
   mcpServerStatuses: McpServerStatus[];
