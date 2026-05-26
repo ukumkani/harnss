@@ -46,6 +46,7 @@ const PROCESSING_ROW: RowDescriptor = { kind: "processing" };
 const CHAT_TOP_PADDING_PX = 56;
 const CHAT_COMPOSER_MIN_HEIGHT_VH = 5;
 const CHAT_COMPOSER_BOTTOM_CLEARANCE_PX = 30;
+const CHAT_COMPOSER_BOTTOM_PADDING_MULTIPLIER = 1.5;
 const CHAT_EXTRA_BOTTOM_PADDING_PX = 280;
 const NARROW_CHAT_MESSAGE_WIDTH_THRESHOLD_PX = 900;
 // Progressive rendering: render bottom rows immediately, hydrate older rows in background
@@ -390,7 +391,9 @@ function ChatViewContent({
   const lastTopProgressRef = useRef(-1);
   const fallbackBottomPadding = extraBottomPadding
     ? `${CHAT_EXTRA_BOTTOM_PADDING_PX}px`
-    : `calc(${CHAT_COMPOSER_MIN_HEIGHT_VH}vh + ${CHAT_COMPOSER_BOTTOM_CLEARANCE_PX}px)`;
+    : `calc(${CHAT_COMPOSER_MIN_HEIGHT_VH * CHAT_COMPOSER_BOTTOM_PADDING_MULTIPLIER}vh + ${
+        CHAT_COMPOSER_BOTTOM_CLEARANCE_PX * CHAT_COMPOSER_BOTTOM_PADDING_MULTIPLIER
+      }px)`;
 
   // ── Single-pass partition: queued vs non-queued (js-combine-iterations) ──
   const { nonQueuedMessages, queuedMessages } = useMemo(() => {
