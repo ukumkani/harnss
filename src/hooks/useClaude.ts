@@ -920,6 +920,14 @@ export function useClaude({ sessionId, initialMessages, initialMeta, initialPerm
   );
 
   useEffect(() => {
+    if (sessionInfo?.permissionMode !== "bypassPermissions") return;
+    if (!pendingPermission) return;
+    if (pendingPermission.toolName === "AskUserQuestion" || pendingPermission.toolName === "ExitPlanMode") return;
+
+    void respondPermission("allow");
+  }, [pendingPermission, respondPermission, sessionInfo?.permissionMode]);
+
+  useEffect(() => {
     const unsubEvent = window.claude.onEvent(handleEvent);
     const unsubPermission = window.claude.onPermissionRequest((data) => {
       if (data._sessionId !== sessionIdRef.current) return;

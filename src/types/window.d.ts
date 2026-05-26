@@ -66,6 +66,7 @@ declare global {
       setMacBackgroundEffect: (effect: MacBackgroundEffect) => void;
       relaunchApp: () => Promise<IpcResult>;
       setMinWidth: (width: number) => void;
+      setBusySleepBlocker: (active: boolean) => void;
       glass: {
         setTintColor: (tintColor: string | null) => void;
         setTheme: (theme: "light" | "dark" | "system") => void;

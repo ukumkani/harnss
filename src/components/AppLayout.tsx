@@ -144,6 +144,23 @@ export function AppLayout() {
     handleClosePreview,
   } = layoutUI;
 
+  const shouldPreventSystemSleep = useMemo(() => {
+    const hasProcessingSession = manager.isProcessing
+      || manager.sessions.some((session) => session.isProcessing);
+    const hasQueuedRequests = manager.queuedCount > 0;
+    const hasRunningBackgroundAgent = bgAgents.agents.some((agent) =>
+      agent.status === "running" || agent.status === "stopping",
+    );
+    return hasProcessingSession || hasQueuedRequests || hasRunningBackgroundAgent;
+  }, [bgAgents.agents, manager.isProcessing, manager.queuedCount, manager.sessions]);
+
+  useEffect(() => {
+    window.claude.setBusySleepBlocker(shouldPreventSystemSleep);
+    return () => {
+      window.claude.setBusySleepBlocker(false);
+    };
+  }, [shouldPreventSystemSleep]);
+
   const jiraBoard = useJiraBoard({
     jiraBoardEnabled,
     activeSpaceId: spaceManager.activeSpaceId,

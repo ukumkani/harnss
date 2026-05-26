@@ -63,6 +63,8 @@ contextBridge.exposeInMainWorld("claude", {
   setMacBackgroundEffect: (effect: MacBackgroundEffect) => ipcRenderer.send("app:set-mac-background-effect", effect),
   relaunchApp: () => ipcRenderer.invoke("app:relaunch"),
   setMinWidth: (width: number) => ipcRenderer.send("app:set-min-width", width),
+  setBusySleepBlocker: (active: boolean) =>
+    ipcRenderer.send("app:set-busy-sleep-blocker", active),
   glass: {
     setTintColor: (tintColor: string | null) =>
       ipcRenderer.send("glass:set-tint-color", tintColor),

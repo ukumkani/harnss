@@ -572,31 +572,18 @@ export function useACP({ sessionId, initialMessages, initialConfigOptions, initi
     }
   }, [sessionId, finalizeStreamingMessage, closePendingTools, pushSystemError]);
 
-  const respondPermission = useCallback(async (
-    behavior: AppPermissionBehavior,
-    _updatedInput?: Record<string, unknown>,
-    _newPermissionMode?: string,
+  const respondAcpPermissionOption = useCallback(async (
+    acpData: ACPPermissionEvent,
+    optionId: string,
+    behavior: AppPermissionBehavior | AcpPermissionBehavior,
   ) => {
-    if (!sessionId || !pendingPermission || !acpPermissionRef.current) return;
-    const acpData = acpPermissionRef.current;
-
-    const optionId = behavior === "allow"
-      ? acpData.options.find(o => o.kind.startsWith("allow"))?.optionId
-      : acpData.options.find(o => o.kind.startsWith("reject"))?.optionId;
-
+    if (!sessionId) return;
     acpLog("PERMISSION_RESPONSE", {
       session: sessionId.slice(0, 8),
       behavior,
       requestId: acpData.requestId,
       optionId,
     });
-
-    if (!optionId) {
-      toast.error("Failed to respond to permission prompt", {
-        description: "No matching ACP permission option was available.",
-      });
-      return;
-    }
 
     const result = await window.claude.acp.respondPermission(sessionId, acpData.requestId, optionId);
     if (result?.error) {
@@ -608,7 +595,38 @@ export function useACP({ sessionId, initialMessages, initialConfigOptions, initi
 
     setPendingPermission(null);
     acpPermissionRef.current = null;
-  }, [sessionId, pendingPermission]);
+  }, [sessionId]);
+
+  const respondPermission = useCallback(async (
+    behavior: AppPermissionBehavior,
+    _updatedInput?: Record<string, unknown>,
+    _newPermissionMode?: string,
+  ) => {
+    if (!pendingPermission || !acpPermissionRef.current) return;
+    const acpData = acpPermissionRef.current;
+
+    const optionId = behavior === "allow"
+      ? acpData.options.find(o => o.kind.startsWith("allow"))?.optionId
+      : acpData.options.find(o => o.kind.startsWith("reject"))?.optionId;
+
+    if (!optionId) {
+      toast.error("Failed to respond to permission prompt", {
+        description: "No matching ACP permission option was available.",
+      });
+      return;
+    }
+
+    await respondAcpPermissionOption(acpData, optionId, behavior);
+  }, [pendingPermission, respondAcpPermissionOption]);
+
+  useEffect(() => {
+    if (!pendingPermission || !acpPermissionRef.current) return;
+    const behavior = acpPermissionBehavior ?? "ask";
+    const optionId = pickAutoResponseOption(acpPermissionRef.current.options, behavior);
+    if (!optionId) return;
+
+    void respondAcpPermissionOption(acpPermissionRef.current, optionId, behavior);
+  }, [acpPermissionBehavior, pendingPermission, respondAcpPermissionOption]);
 
   const setConfig = useCallback(async (configId: string, value: string) => {
     if (!sessionId) return;

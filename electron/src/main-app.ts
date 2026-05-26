@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, nativeTheme, session, shell, systemPreferences, webContents } from "electron";
+import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, nativeTheme, powerSaveBlocker, session, shell, systemPreferences, webContents } from "electron";
 import path from "path";
 import http from "http";
 import contextMenu from "electron-context-menu";
@@ -47,6 +47,11 @@ if (glassEnabled) {
 }
 
 let mainWindow: BrowserWindow | null = null;
+let busySleepBlockerId: number | null = null;
+// TODO(settings): expose this as a Settings-controlled system option. It stays
+// enabled internally for now so active agent work and queued requests are not
+// interrupted by automatic system sleep.
+const PREVENT_SLEEP_WHILE_BUSY_ENABLED = true;
 
 export function focusMainWindow(): void {
   if (!mainWindow || mainWindow.isDestroyed()) return;
@@ -280,6 +285,25 @@ ipcMain.handle("app:relaunch", () => {
   } catch (err) {
     return { ok: false, error: reportError("APP_RELAUNCH", err) };
   }
+});
+
+ipcMain.on("app:set-busy-sleep-blocker", (event, active: unknown) => {
+  if (!isMainRendererPermissionRequest(event.sender)) return;
+
+  const shouldBlock = PREVENT_SLEEP_WHILE_BUSY_ENABLED && active === true;
+  if (shouldBlock) {
+    if (busySleepBlockerId != null && powerSaveBlocker.isStarted(busySleepBlockerId)) return;
+    busySleepBlockerId = powerSaveBlocker.start("prevent-display-sleep");
+    log("POWER_SAVE", `Busy sleep blocker started id=${busySleepBlockerId}`);
+    return;
+  }
+
+  if (busySleepBlockerId == null) return;
+  if (powerSaveBlocker.isStarted(busySleepBlockerId)) {
+    powerSaveBlocker.stop(busySleepBlockerId);
+    log("POWER_SAVE", `Busy sleep blocker stopped id=${busySleepBlockerId}`);
+  }
+  busySleepBlockerId = null;
 });
 
 ipcMain.handle("clipboard:write-text", (_event, text: string) => {

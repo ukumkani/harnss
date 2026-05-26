@@ -48,6 +48,16 @@ interface SessionEntry {
 
 export const sessions = new Map<string, SessionEntry>();
 
+function toRecordInput(input: unknown): Record<string, unknown> | undefined {
+  return input && typeof input === "object" && !Array.isArray(input)
+    ? input as Record<string, unknown>
+    : undefined;
+}
+
+function shouldBypassToolPermission(session: SessionEntry): boolean {
+  return session.startOptions?.permissionMode === "bypassPermissions";
+}
+
 function toSdkModelOverride(model?: string | null): string | undefined {
   const normalized = model?.trim();
   if (!normalized) return undefined;
@@ -527,6 +537,10 @@ async function restartSession(
   };
 
   const canUseTool = (toolName: string, input: unknown, context: { toolUseID: string; suggestions: unknown; decisionReason: string }) => {
+    if (shouldBypassToolPermission(newSession)) {
+      return Promise.resolve({ behavior: "allow" as const, updatedInput: toRecordInput(input) });
+    }
+
     return new Promise<PermissionResult>((resolve) => {
       const requestId = crypto.randomUUID();
       newSession.pendingPermissions.set(requestId, { resolve });
@@ -619,6 +633,10 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
       sessions.set(sessionId, session);
 
       const canUseTool = (toolName: string, input: unknown, context: { toolUseID: string; suggestions: unknown; decisionReason: string }) => {
+        if (shouldBypassToolPermission(session)) {
+          return Promise.resolve({ behavior: "allow" as const, updatedInput: toRecordInput(input) });
+        }
+
         return new Promise<PermissionResult>((resolve) => {
           const requestId = crypto.randomUUID();
           session.pendingPermissions.set(requestId, { resolve });

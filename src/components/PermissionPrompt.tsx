@@ -41,6 +41,12 @@ const TOOL_LABELS: Record<string, string> = {
 
 const PERMISSION_PROMPT_SURFACE_CLASS =
   "pointer-events-auto rounded-2xl border border-[color:var(--foreground)] bg-background shadow-lg";
+const PERMISSION_PROMPT_OUTER_CLASS =
+  `mx-auto w-full px-4 pb-4 ${BOTTOM_CHAT_MAX_WIDTH_CLASS}`;
+const PERMISSION_ACTION_BUTTON_CLASS =
+  "h-[29px] gap-1.5 border border-[color:var(--foreground)] bg-transparent text-xs text-foreground shadow-none hover:bg-muted/40 hover:text-foreground";
+const PERMISSION_ACTION_ICON_BUTTON_CLASS =
+  "h-[29px] border border-[color:var(--foreground)] bg-transparent px-1.5 text-foreground shadow-none hover:bg-muted/40 hover:text-foreground";
 
 // ── Scoped "always allow" options ──
 
@@ -218,7 +224,7 @@ function ExitPlanModePrompt({ request, onRespond }: PermissionPromptProps) {
   };
 
   return (
-    <div className={`mx-auto w-full px-4 pb-4 ${BOTTOM_CHAT_MAX_WIDTH_CLASS}`}>
+    <div className={PERMISSION_PROMPT_OUTER_CLASS}>
       <div className={PERMISSION_PROMPT_SURFACE_CLASS}>
         <div className="flex flex-col gap-3 px-4 py-3.5">
           <p className="text-[13px] text-foreground">
@@ -376,9 +382,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
   // Collapsed: minimal bar with question count + expand button
   if (collapsed) {
     return (
-      <div
-        className={`mx-auto w-full px-4 pb-4 ${BOTTOM_CHAT_MAX_WIDTH_CLASS}`}
-      >
+      <div className={PERMISSION_PROMPT_OUTER_CLASS}>
         <div className={`${PERMISSION_PROMPT_SURFACE_CLASS} flex items-center gap-3 px-3.5 py-2.5`}>
           <MessageCircleQuestion className="h-4 w-4 shrink-0 text-foreground/65" />
           <span className="flex-1 text-[12px] text-foreground">
@@ -400,7 +404,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
   }
 
   return (
-    <div className={`mx-auto w-full px-4 pb-4 ${BOTTOM_CHAT_MAX_WIDTH_CLASS}`}>
+    <div className={PERMISSION_PROMPT_OUTER_CLASS}>
       <div className={PERMISSION_PROMPT_SURFACE_CLASS}>
         {/* Current question content */}
         <div className="flex flex-col gap-2 px-3.5 py-3">
@@ -614,41 +618,15 @@ export function PermissionPrompt({
   };
 
   return (
-    <div className={`mx-auto w-full px-4 pb-4 ${BOTTOM_CHAT_MAX_WIDTH_CLASS}`}>
-      <div className={`${PERMISSION_PROMPT_SURFACE_CLASS} flex items-start gap-3 px-4 py-3`}>
-        <ShieldAlert className="h-5 w-5 shrink-0 text-foreground/65" />
-
-        <div className="min-w-0 flex-1 space-y-2">
-          <p className="text-sm font-medium text-foreground">{label}</p>
-          {detail && (
-            <div className="space-y-1">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-foreground/65">
-                {detail.label}
-              </p>
-              <div className="rounded-md bg-foreground/[0.04] px-3 py-2 font-mono text-[11px] text-foreground whitespace-pre-wrap wrap-break-word">
-                {detail.value}
-              </div>
-              {detail.meta && (
-                <p className="text-[11px] text-foreground">
-                  {detail.meta}
-                </p>
-              )}
-            </div>
-          )}
-          {request.decisionReason && (
-            <p className="text-xs text-foreground/85 wrap-break-word">
-              {request.decisionReason}
-            </p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
+    <div className={PERMISSION_PROMPT_OUTER_CLASS}>
+      <div className={`${PERMISSION_PROMPT_SURFACE_CLASS} flex flex-col overflow-hidden`}>
+        <div className="flex flex-wrap items-center justify-end gap-2 border-b border-foreground/30 px-3 py-2">
           <Button
             size="sm"
             variant="ghost"
             disabled={isSubmitting}
             onClick={() => void submit("deny")}
-            className="h-8 gap-1.5 text-xs text-foreground/65 hover:text-foreground"
+            className={PERMISSION_ACTION_BUTTON_CLASS}
           >
             <X className="h-3.5 w-3.5" />
             {submittingAction === "deny" ? "Denying..." : "Deny"}
@@ -659,7 +637,7 @@ export function PermissionPrompt({
               variant="outline"
               disabled={isSubmitting}
               onClick={() => void submit("allowForSession")}
-              className="h-8 gap-1.5 text-xs"
+              className={PERMISSION_ACTION_BUTTON_CLASS}
             >
               <Check className="h-3.5 w-3.5" />
               {submittingAction === "allowForSession"
@@ -674,7 +652,7 @@ export function PermissionPrompt({
               size="sm"
               disabled={isSubmitting}
               onClick={() => void submit("allow")}
-              className={`h-8 gap-1.5 text-xs ${scopeOptions.length > 0 ? "rounded-e-none" : ""}`}
+              className={`${PERMISSION_ACTION_BUTTON_CLASS} ${scopeOptions.length > 0 ? "rounded-e-none" : ""}`}
             >
               <Check className="h-3.5 w-3.5" />
               {submittingAction === "allow" ? "Allowing..." : "Allow"}
@@ -685,7 +663,7 @@ export function PermissionPrompt({
                   <Button
                     size="sm"
                     disabled={isSubmitting}
-                    className="h-8 rounded-s-none border-s border-s-primary-foreground/20 px-1.5"
+                    className={`${PERMISSION_ACTION_ICON_BUTTON_CLASS} rounded-s-none border-s-0`}
                   >
                     <ChevronDown className="h-3 w-3" />
                   </Button>
@@ -707,6 +685,34 @@ export function PermissionPrompt({
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 px-4 py-3">
+          <ShieldAlert className="h-5 w-5 shrink-0 text-foreground/65" />
+
+          <div className="min-w-0 flex-1 space-y-2">
+            <p className="text-sm font-medium text-foreground">{label}</p>
+            {detail && (
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-foreground/65">
+                  {detail.label}
+                </p>
+                <div className="rounded-md bg-foreground/[0.04] px-3 py-2 font-mono text-[11px] text-foreground whitespace-pre-wrap wrap-break-word">
+                  {detail.value}
+                </div>
+                {detail.meta && (
+                  <p className="text-[11px] text-foreground">
+                    {detail.meta}
+                  </p>
+                )}
+              </div>
+            )}
+            {request.decisionReason && (
+              <p className="text-xs text-foreground/85 wrap-break-word">
+                {request.decisionReason}
+              </p>
             )}
           </div>
         </div>
