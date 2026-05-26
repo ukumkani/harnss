@@ -46,7 +46,7 @@ const PROCESSING_ROW: RowDescriptor = { kind: "processing" };
 const CHAT_TOP_PADDING_PX = 56;
 const CHAT_COMPOSER_MIN_HEIGHT_VH = 5;
 const CHAT_COMPOSER_BOTTOM_CLEARANCE_PX = 30;
-const CHAT_COMPOSER_BOTTOM_PADDING_MULTIPLIER = 1.5;
+const CHAT_COMPOSER_BOTTOM_PADDING_MULTIPLIER = 2;
 const CHAT_EXTRA_BOTTOM_PADDING_PX = 280;
 const NARROW_CHAT_MESSAGE_WIDTH_THRESHOLD_PX = 900;
 // Progressive rendering: render bottom rows immediately, hydrate older rows in background
