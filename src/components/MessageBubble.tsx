@@ -225,8 +225,8 @@ export const MessageBubble = memo(function MessageBubble({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className={cn(
-                "rounded-2xl rounded-tr-sm bg-foreground/[0.06] px-3.5 py-2 text-sm text-foreground wrap-break-word whitespace-pre-wrap",
-                message.isQueued && "bg-foreground/[0.12]",
+                "rounded-2xl rounded-tr-sm bg-foreground/[0.09] px-3.5 py-2 text-sm text-foreground wrap-break-word whitespace-pre-wrap",
+                message.isQueued && "bg-foreground/[0.06]",
                 message.isQueued && "border border-dashed border-[color:var(--foreground)]",
               )}>
                 {message.images && message.images.length > 0 && (
