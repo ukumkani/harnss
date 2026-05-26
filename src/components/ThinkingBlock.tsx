@@ -27,7 +27,7 @@ function ThinkingCodeBlock(props: React.HTMLAttributes<HTMLElement> & { node?: u
   if (isBlock) {
     return (
       <div className="my-1.5 overflow-x-auto rounded bg-foreground/[0.04] p-2">
-        {match && <div className="mb-1 text-[10px] text-foreground/20">{match[1]}</div>}
+        {match && <div className="mb-1 text-[10px] text-foreground/65">{match[1]}</div>}
         <pre className="text-[11px] font-mono"><code>{code}</code></pre>
       </div>
     );
@@ -186,21 +186,21 @@ export const ThinkingBlock = memo(function ThinkingBlock({
 
   return (
     <Collapsible open={open} onOpenChange={handleOpenChange} className="mb-1">
-      <CollapsibleTrigger className="flex items-center gap-1.5 py-1 text-xs text-foreground/40 hover:text-foreground/70 transition-colors">
-        <Minus className={`h-3 w-3 ${isThinking ? "text-foreground/40" : "text-foreground/30"}`} />
+      <CollapsibleTrigger className="flex items-center gap-1.5 py-1 text-xs text-foreground/65 hover:text-foreground/85 transition-colors">
+        <Minus className={`h-3 w-3 ${isThinking ? "text-foreground/65" : "text-foreground/30"}`} />
         {isThinking ? (
           <TextShimmer as="span" className="italic opacity-60" duration={1.8} spread={1.5}>
             Thinking...
           </TextShimmer>
         ) : (
-          <span className="italic text-foreground/40">Thought</span>
+          <span className="italic text-foreground/65">Thought</span>
         )}
       </CollapsibleTrigger>
       {/* 3-line 3D preview — only visible while actively thinking + collapsed */}
       {!open && isThinking && (
         <div
           ref={setPreviewRef}
-          className="mt-0.5 overflow-hidden border-s border-dashed border-foreground/10 ps-3 py-0.5 text-xs text-foreground/40 will-change-transform [&_p+p]:mt-1 [&_ul]:my-0.5 [&_ol]:my-0.5 [&_li]:ms-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0"
+          className="mt-0.5 overflow-hidden border-s border-dashed border-foreground/30 ps-3 py-0.5 text-xs text-foreground/85 will-change-transform [&_p+p]:mt-1 [&_ul]:my-0.5 [&_ol]:my-0.5 [&_li]:ms-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0"
           style={{
             maxHeight: 52,
             transformOrigin: "bottom center",
@@ -218,7 +218,7 @@ export const ThinkingBlock = memo(function ThinkingBlock({
           <div
             ref={setExpandedRef}
             onScroll={handleScroll}
-            className="max-h-60 overflow-auto border-s-2 border-foreground/10 ps-3 py-1 text-xs text-foreground/40 [&_p+p]:mt-1.5 [&_ul]:my-1 [&_ol]:my-1 [&_li]:ms-3 [&_strong]:text-foreground/50 [&>:first-child]:mt-0 [&>:last-child]:mb-0"
+            className="max-h-60 overflow-auto border-s-2 border-foreground/30 ps-3 py-1 text-xs text-foreground/85 [&_p+p]:mt-1.5 [&_ul]:my-1 [&_ol]:my-1 [&_li]:ms-3 [&_strong]:text-foreground [&>:first-child]:mt-0 [&>:last-child]:mb-0"
           >
             <ReactMarkdown remarkPlugins={THINKING_REMARK_PLUGINS} components={THINKING_MD_COMPONENTS}>
               {thinking}

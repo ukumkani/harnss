@@ -2,7 +2,7 @@
  * Single-chat tool workspace state management.
  *
  * Thin wrapper around `useToolIslands` that adds:
- * - localStorage persistence (per-project)
+ * - localStorage persistence (per-space, then per-project)
  * - Chat-absorbs-width fraction strategy (tools keep size, chat shrinks)
  * - Migration from legacy settings
  * - State sanitization on load
@@ -25,6 +25,7 @@ import {
 } from "@/lib/workspace/main-tool-widths";
 import { isPanelTool, makeToolColumnItemId } from "@/lib/workspace/tool-island-utils";
 import { getChatPaneMinWidthPx } from "@/lib/layout/workspace-constraints";
+import { makeProjectScopeKey } from "@/stores/settings-store";
 import type {
   PanelToolId,
   ToolColumn,
@@ -170,12 +171,11 @@ interface MigrationInput {
   bottomWidthFractions: number[];
 }
 
-function makeStorageKey(projectId: string | null): string {
-  return `harnss-${projectId ?? "__none__"}-main-tool-workspace-v1`;
+function makeStorageKey(spaceId: string, projectId: string | null): string {
+  return `harnss-${makeProjectScopeKey(spaceId, projectId)}-main-tool-workspace-v1`;
 }
 
-function readAndConvertState(projectId: string | null, migration: MigrationInput): ToolIslandsState {
-  const raw = localStorage.getItem(makeStorageKey(projectId));
+function readSerializedState(raw: string | null): ToolIslandsState | null {
   if (raw) {
     try {
       const parsed = JSON.parse(raw) as LegacySerializedState;
@@ -202,15 +202,25 @@ function readAndConvertState(projectId: string | null, migration: MigrationInput
         };
       }
     } catch {
-      // fall through to migration
+      return null;
     }
   }
-
-  // Migrate from old settings format
-  return migrateFromSettings(projectId, migration);
+  return null;
 }
 
-function migrateFromSettings(projectId: string | null, migration: MigrationInput): ToolIslandsState {
+function readAndConvertState(spaceId: string, projectId: string | null, migration: MigrationInput): ToolIslandsState {
+  const scopedState = readSerializedState(localStorage.getItem(makeStorageKey(spaceId, projectId)));
+  if (scopedState) return scopedState;
+
+  const legacyState = readSerializedState(localStorage.getItem(`harnss-${projectId ?? "__none__"}-main-tool-workspace-v1`));
+  if (legacyState) return legacyState;
+
+  // Migrate from old settings format
+  return migrateFromSettings(spaceId, projectId, migration);
+}
+
+function migrateFromSettings(spaceId: string, projectId: string | null, migration: MigrationInput): ToolIslandsState {
+  const scopeKey = makeProjectScopeKey(spaceId, projectId);
   const activePanelToolIds: PanelToolId[] = migration.toolOrder.filter(
     (toolId): toolId is PanelToolId => isPanelTool(toolId) && migration.activeToolIds.has(toolId),
   );
@@ -225,7 +235,7 @@ function migrateFromSettings(projectId: string | null, migration: MigrationInput
   sideToolIds.forEach((toolId, index) => {
     const islandId = `main-tool:${toolId}`;
     const columnId = `main-col:${toolId}`;
-    const persistKey = `main-tool:${projectId ?? "__none__"}:${toolId}`;
+    const persistKey = `main-tool:${scopeKey}:${toolId}`;
     toolIslandsById[islandId] = { id: islandId, toolId, sourceSessionId: MAIN_SOURCE_SESSION, dock: "top", persistKey };
     topToolColumnsById[columnId] = { id: columnId, islandIds: [islandId], splitRatios: [1] };
     topRowItemIds.push(makeToolColumnItemId(columnId));
@@ -243,7 +253,7 @@ function migrateFromSettings(projectId: string | null, migration: MigrationInput
   const bottomToolIslandIds: string[] = [];
   bottomToolIds.forEach((toolId, index) => {
     const islandId = `main-tool:${toolId}`;
-    const persistKey = `main-tool:${projectId ?? "__none__"}:${toolId}`;
+    const persistKey = `main-tool:${scopeKey}:${toolId}`;
     toolIslandsById[islandId] = { id: islandId, toolId, sourceSessionId: MAIN_SOURCE_SESSION, dock: "bottom", persistKey };
     toolMemories[toolId] = {
       islandId,
@@ -272,7 +282,7 @@ function migrateFromSettings(projectId: string | null, migration: MigrationInput
   };
 }
 
-function persistState(projectId: string | null, state: ToolIslandsState): void {
+function persistState(spaceId: string, projectId: string | null, state: ToolIslandsState): void {
   // Persist in legacy format for backward compatibility
   const toolIslandsById: Record<string, { id: string; toolId: PanelToolId; dock: ToolIslandDock; persistKey: string }> = {};
   for (const [id, island] of Object.entries(state.toolIslandsById)) {
@@ -294,12 +304,13 @@ function persistState(projectId: string | null, state: ToolIslandsState): void {
     bottomHeight: state.bottomHeight,
     bottomWidthFractions: state.bottomWidthFractions,
   };
-  localStorage.setItem(makeStorageKey(projectId), JSON.stringify(serialized));
+  localStorage.setItem(makeStorageKey(spaceId, projectId), JSON.stringify(serialized));
 }
 
 // ── Config builder ──
 
-function buildConfig(projectId: string | null, workspaceWidthRef: RefObject<number>): UseToolIslandsConfig {
+function buildConfig(spaceId: string, projectId: string | null, workspaceWidthRef: RefObject<number>): UseToolIslandsConfig {
+  const scopeKey = makeProjectScopeKey(spaceId, projectId);
   return {
     computeTopRowLayout: (change: TopRowChange, current) => {
       return projectMainToolWidthChange({
@@ -328,7 +339,7 @@ function buildConfig(projectId: string | null, workspaceWidthRef: RefObject<numb
     makeIslandId: (_toolId, _sessionId, existingId) => existingId ?? `main-tool:${_toolId}`,
 
     makePersistKey: (toolId, _sessionId, _islandId) =>
-      `main-tool:${projectId ?? "__none__"}:${toolId}`,
+      `main-tool:${scopeKey}:${toolId}`,
 
     makeMemoryKey: (_sessionId, toolId) => toolId,
 
@@ -339,7 +350,7 @@ function buildConfig(projectId: string | null, workspaceWidthRef: RefObject<numb
     findExistingIsland: (islands, _sessionId, toolId) =>
       Object.values(islands).find((island) => island.toolId === toolId) ?? null,
 
-    onStateChange: (state) => persistState(projectId, state),
+    onStateChange: (state) => persistState(spaceId, projectId, state),
   };
 }
 
@@ -479,20 +490,21 @@ export function moveBottomToolToTop(
 
 export function useMainToolWorkspace(
   projectId: string | null,
+  spaceId: string,
   migration: MigrationInput,
   workspaceWidthRef: RefObject<number>,
 ): MainToolWorkspaceState {
-  const config = useMemo(() => buildConfig(projectId, workspaceWidthRef), [projectId, workspaceWidthRef]);
+  const config = useMemo(() => buildConfig(spaceId, projectId, workspaceWidthRef), [spaceId, projectId, workspaceWidthRef]);
 
   const toolIslands = useToolIslands(
     config,
-    () => sanitizeWorkspaceState(readAndConvertState(projectId, migration)),
+    () => sanitizeWorkspaceState(readAndConvertState(spaceId, projectId, migration)),
   );
 
-  // Re-initialize on project switch
+  // Re-initialize on space or project switch.
   useEffect(() => {
-    toolIslands.resetState(sanitizeWorkspaceState(readAndConvertState(projectId, migration)));
-  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    toolIslands.resetState(sanitizeWorkspaceState(readAndConvertState(spaceId, projectId, migration)));
+  }, [spaceId, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Adapter: wrap CRUD to match the original API (no sourceSessionId param) ──
 

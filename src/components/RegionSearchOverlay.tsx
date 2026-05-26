@@ -49,17 +49,17 @@ export const RegionSearchOverlay = memo(function RegionSearchOverlay({
       className="absolute end-3 top-3 z-30 animate-in fade-in slide-in-from-top-2 duration-150"
     >
       <div className="flex items-center gap-1 rounded-lg border border-border/50 bg-background/95 px-2 py-1 shadow-lg backdrop-blur-sm">
-        <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+        <Search className="h-3.5 w-3.5 shrink-0 text-foreground/65" />
         <input
           ref={inputRef}
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Search keywords..."
-          className="w-44 bg-transparent px-1.5 py-0.5 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none"
+          className="w-44 bg-transparent px-1.5 py-0.5 text-sm text-foreground placeholder:text-muted-foreground/55 outline-none"
         />
         {hasQuery && (
-          <span className="shrink-0 text-xs tabular-nums text-muted-foreground/60">
+          <span className="shrink-0 text-xs tabular-nums text-foreground/65">
             {matchCount === 0 ? "0" : `${currentIndex + 1}/${matchCount}`}
           </span>
         )}
@@ -67,7 +67,7 @@ export const RegionSearchOverlay = memo(function RegionSearchOverlay({
           type="button"
           onClick={onPrev}
           disabled={matchCount === 0}
-          className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground disabled:opacity-30"
+          className="rounded p-0.5 text-foreground/65 transition-colors hover:text-foreground disabled:opacity-30"
           aria-label="Previous match"
         >
           <ChevronUp className="h-3.5 w-3.5" />
@@ -76,7 +76,7 @@ export const RegionSearchOverlay = memo(function RegionSearchOverlay({
           type="button"
           onClick={onNext}
           disabled={matchCount === 0}
-          className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground disabled:opacity-30"
+          className="rounded p-0.5 text-foreground/65 transition-colors hover:text-foreground disabled:opacity-30"
           aria-label="Next match"
         >
           <ChevronDown className="h-3.5 w-3.5" />
@@ -84,7 +84,7 @@ export const RegionSearchOverlay = memo(function RegionSearchOverlay({
         <button
           type="button"
           onClick={onClose}
-          className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground"
+          className="rounded p-0.5 text-foreground/65 transition-colors hover:text-foreground"
           aria-label="Close search"
         >
           <X className="h-3.5 w-3.5" />

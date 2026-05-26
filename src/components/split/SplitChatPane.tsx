@@ -84,6 +84,7 @@ export interface SplitChatPaneProps {
 
   // Callbacks
   spaceId: string;
+  chatPaneTextVars: React.CSSProperties;
   onRevert?: (checkpointId: string) => void;
   onFullRevert?: (checkpointId: string) => void;
   onTopScrollProgress: (progress: number) => void;
@@ -156,6 +157,7 @@ function SplitChatPaneInner({
   onSelectWorktree,
   codexModelData,
   spaceId,
+  chatPaneTextVars,
   onRevert,
   onFullRevert,
   onTopScrollProgress,
@@ -203,6 +205,7 @@ function SplitChatPaneInner({
         isFocused ? "ring-2 ring-primary/15" : ""
       }`}
       style={{
+        ...chatPaneTextVars,
         width: `calc(${widthPercent}% - ${handleSharePx}px)`,
         minWidth: minChatWidth ?? getChatPaneMinWidthPx("split"),
         flexShrink: 0,

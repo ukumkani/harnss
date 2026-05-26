@@ -231,14 +231,14 @@ function ExitPlanModePrompt({ request, onRespond }: PermissionPromptProps) {
                 key={mode.id}
                 type="button"
                 onClick={() => onRespond("allow", request.toolInput, mode.id)}
-                className="flex items-center gap-2 rounded-lg border border-border/40 px-3 py-2 text-start text-muted-foreground transition-colors hover:border-border hover:bg-muted/40 hover:text-foreground"
+                className="flex items-center gap-2 rounded-lg border border-foreground/30 px-3 py-2 text-start text-foreground transition-colors hover:border-border hover:bg-muted/40"
               >
                 <Play className="h-3 w-3 shrink-0" />
                 <div className="flex flex-col items-start">
                   <span className="text-xs font-medium leading-snug">
                     {mode.label}
                   </span>
-                  <span className="text-[11px] leading-snug text-muted-foreground/60">
+                  <span className="text-[11px] leading-snug text-foreground/65">
                     {mode.description}
                   </span>
                 </div>
@@ -247,7 +247,7 @@ function ExitPlanModePrompt({ request, onRespond }: PermissionPromptProps) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 border-t border-border/40 px-3 py-2.5">
+        <div className="flex flex-col gap-2 border-t border-foreground/30 px-3 py-2.5">
           <input
             type="text"
             placeholder="Give feedback to refine the plan..."
@@ -257,14 +257,14 @@ function ExitPlanModePrompt({ request, onRespond }: PermissionPromptProps) {
               if (e.key === "Enter") submitFeedback();
               if (e.key === "Escape") setFeedback("");
             }}
-            className="w-full rounded-md border border-border/40 bg-transparent px-2.5 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus-visible:border-border"
+            className="w-full rounded-md border border-foreground/30 bg-transparent px-2.5 py-2 text-sm text-foreground placeholder:text-muted-foreground/55 outline-none focus-visible:border-border"
           />
           <div className="flex items-center justify-end gap-2">
             <Button
               size="sm"
               variant="ghost"
               onClick={() => onRespond("deny")}
-              className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              className="h-8 gap-1.5 text-xs text-foreground/65 hover:text-foreground"
             >
               <X className="h-3.5 w-3.5" />
               Stay in Plan
@@ -380,8 +380,8 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
         className={`mx-auto w-full px-4 pb-4 ${BOTTOM_CHAT_MAX_WIDTH_CLASS}`}
       >
         <div className={`${PERMISSION_PROMPT_SURFACE_CLASS} flex items-center gap-3 px-3.5 py-2.5`}>
-          <MessageCircleQuestion className="h-4 w-4 shrink-0 text-foreground/50" />
-          <span className="flex-1 text-[12px] text-foreground/70">
+          <MessageCircleQuestion className="h-4 w-4 shrink-0 text-foreground/65" />
+          <span className="flex-1 text-[12px] text-foreground">
             {isMulti
               ? `${answeredCount}/${questions.length} questions answered`
               : q.question}
@@ -389,7 +389,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
           <button
             type="button"
             onClick={() => setCollapsed(false)}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-foreground/65 transition-colors hover:bg-muted/40 hover:text-foreground"
           >
             <ChevronsUpDown className="h-3 w-3" />
             Expand
@@ -407,7 +407,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
           {/* Question text with step indicator */}
           <div className="flex items-baseline gap-2">
             {isMulti && (
-              <span className="shrink-0 text-[10px] font-medium tabular-nums text-muted-foreground/50">
+              <span className="shrink-0 text-[10px] font-medium tabular-nums text-foreground/65">
                 {currentIndex + 1}/{questions.length}
               </span>
             )}
@@ -429,14 +429,14 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
                     className={`flex items-start justify-start gap-2 rounded-lg border px-2.5 py-2.5 text-start transition-colors ${
                       isSelected
                         ? "border-border bg-accent text-foreground"
-                        : "border-border/40 text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground"
+                        : "border-foreground/30 text-foreground hover:border-border hover:bg-muted/40"
                     }`}
                   >
                     {q.multiSelect && (
                       <span
                         className={`mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border ${
                           isSelected
-                            ? "border-foreground/40 bg-foreground/15 text-foreground"
+                            ? "border-foreground/30 bg-foreground/15 text-foreground"
                             : "border-border/60"
                         }`}
                       >
@@ -448,7 +448,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
                         {opt.label}
                       </span>
                       {opt.description && (
-                        <span className="block text-[10px] leading-snug text-muted-foreground/50">
+                        <span className="block text-[10px] leading-snug text-foreground/65">
                           {opt.description}
                         </span>
                       )}
@@ -480,17 +480,17 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
                 else if (hasAllAnswers) handleSubmit();
               }
             }}
-            className="w-full rounded-md border border-border/30 bg-transparent px-2.5 py-1.5 text-[12px] text-foreground placeholder:text-muted-foreground/35 outline-none focus-visible:border-border"
+            className="w-full rounded-md border border-foreground/30 bg-transparent px-2.5 py-1.5 text-[12px] text-foreground placeholder:text-muted-foreground/55 outline-none focus-visible:border-border"
           />
         </div>
 
         {/* Action bar */}
-        <div className="flex items-center gap-1.5 border-t border-border/40 px-3 py-2">
+        <div className="flex items-center gap-1.5 border-t border-foreground/30 px-3 py-2">
           <Button
             size="sm"
             variant="ghost"
             onClick={() => onRespond("deny")}
-            className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            className="h-7 gap-1.5 text-xs text-foreground/65 hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
             Skip
@@ -502,7 +502,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
               size="sm"
               variant="ghost"
               onClick={goBack}
-              className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+              className="h-7 gap-1 text-xs text-foreground/65 hover:text-foreground"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Back
@@ -516,7 +516,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
           <button
             type="button"
             onClick={() => setCollapsed(true)}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-foreground/65 transition-colors hover:bg-muted/40 hover:text-foreground"
           >
             <ChevronsDownUp className="h-3 w-3" />
           </button>
@@ -616,27 +616,27 @@ export function PermissionPrompt({
   return (
     <div className={`mx-auto w-full px-4 pb-4 ${BOTTOM_CHAT_MAX_WIDTH_CLASS}`}>
       <div className={`${PERMISSION_PROMPT_SURFACE_CLASS} flex items-start gap-3 px-4 py-3`}>
-        <ShieldAlert className="h-5 w-5 shrink-0 text-foreground/60" />
+        <ShieldAlert className="h-5 w-5 shrink-0 text-foreground/65" />
 
         <div className="min-w-0 flex-1 space-y-2">
           <p className="text-sm font-medium text-foreground">{label}</p>
           {detail && (
             <div className="space-y-1">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-foreground/65">
                 {detail.label}
               </p>
-              <div className="rounded-md bg-foreground/[0.04] px-3 py-2 font-mono text-[11px] text-foreground/75 whitespace-pre-wrap wrap-break-word">
+              <div className="rounded-md bg-foreground/[0.04] px-3 py-2 font-mono text-[11px] text-foreground whitespace-pre-wrap wrap-break-word">
                 {detail.value}
               </div>
               {detail.meta && (
-                <p className="text-[11px] text-muted-foreground/80">
+                <p className="text-[11px] text-foreground">
                   {detail.meta}
                 </p>
               )}
             </div>
           )}
           {request.decisionReason && (
-            <p className="text-xs text-muted-foreground wrap-break-word">
+            <p className="text-xs text-foreground/85 wrap-break-word">
               {request.decisionReason}
             </p>
           )}
@@ -648,7 +648,7 @@ export function PermissionPrompt({
             variant="ghost"
             disabled={isSubmitting}
             onClick={() => void submit("deny")}
-            className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            className="h-8 gap-1.5 text-xs text-foreground/65 hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
             {submittingAction === "deny" ? "Denying..." : "Deny"}
@@ -700,7 +700,7 @@ export function PermissionPrompt({
                       <span className="text-xs font-medium">
                         Always allow for {opt.label}
                       </span>
-                      <span className="text-[10px] leading-snug text-muted-foreground">
+                      <span className="text-[10px] leading-snug text-foreground/65">
                         {opt.description}
                       </span>
                     </DropdownMenuItem>

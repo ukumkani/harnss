@@ -169,7 +169,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
     return (
       <div className={`flex justify-start ${CHAT_ROW_CLASS}`}>
         <div className="flex items-center gap-1.5 text-xs">
-          <Minus className="h-3 w-3 text-foreground/40" />
+          <Minus className="h-3 w-3 text-foreground/65" />
           <TextShimmer as="span" className="italic opacity-60" duration={1.8} spread={1.5}>
             Planning next moves
           </TextShimmer>
@@ -296,13 +296,13 @@ export const ChatView = memo(function ChatView(props: ChatViewProps) {
         >
           <div className="flex flex-col items-center gap-3">
             <h2
-              className="text-3xl italic text-foreground/20"
+              className="text-3xl italic text-foreground/85"
               style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}
             >
               Send a message to start
             </h2>
             <p
-              className="text-sm italic text-muted-foreground/30"
+              className="text-sm italic text-foreground/30"
               style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}
             >
               Your conversation will appear here
@@ -806,7 +806,7 @@ function ChatViewContent({
   if (!contentReady) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-foreground/20" />
+        <Loader2 className="h-5 w-5 animate-spin text-foreground/30" />
       </div>
     );
   }

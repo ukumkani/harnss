@@ -120,7 +120,7 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
             <div>
               <div>{m.label}</div>
               {m.description && (
-                <div className="text-[10px] text-muted-foreground">
+                <div className="text-[10px] text-foreground/65">
                   {m.description}
                 </div>
               )}
@@ -132,7 +132,7 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
       {!isCodexAgent && !isACPAgent && claudeEffortOptions.length > 0 && (
         <>
           <DropdownMenuSeparator />
-          <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground">
+          <div className="px-2 py-1 text-[10px] font-medium text-foreground/65">
             Effort
           </div>
           {claudeEffortOptions.map((effort) => (
@@ -150,12 +150,12 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
                 <div className="flex items-center gap-2">
                   <span className="capitalize">{effort}</span>
                   {effort === claudeActiveEffort && (
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-[10px] text-foreground/65">
                       Current
                     </span>
                   )}
                 </div>
-                <div className="text-[10px] text-muted-foreground">
+                <div className="text-[10px] text-foreground/65">
                   {CLAUDE_EFFORT_DESCRIPTIONS[effort] ??
                     "Custom reasoning effort"}
                 </div>
@@ -167,7 +167,7 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
 
       {/* Models loading */}
       {!isACPAgent && modelsLoading && (
-        <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+        <DropdownMenuItem disabled className="text-xs text-foreground/65">
           <Loader2 className="h-3 w-3 animate-spin" />
           {modelsLoadingText}
         </DropdownMenuItem>
@@ -179,7 +179,7 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
         onCodexEffortChange && (
           <>
             <DropdownMenuSeparator />
-            <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground">
+            <div className="px-2 py-1 text-[10px] font-medium text-foreground/65">
               Effort
             </div>
             {codexEffortOptions.map((opt) => (
@@ -193,7 +193,7 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
                 <div>
                   <div className="capitalize">{opt.reasoningEffort}</div>
                   {opt.description && (
-                    <div className="text-[10px] text-muted-foreground">
+                    <div className="text-[10px] text-foreground/65">
                       {opt.description}
                     </div>
                   )}
@@ -217,7 +217,7 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
               <DropdownMenuSubTrigger>
                 <div>
                   <div>{opt.name}</div>
-                  <div className="text-[10px] text-muted-foreground">
+                  <div className="text-[10px] text-foreground/65">
                     {current?.name ?? opt.currentValue}
                   </div>
                 </div>
@@ -234,7 +234,7 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
                     <div>
                       <div>{o.name}</div>
                       {o.description && (
-                        <div className="text-[10px] text-muted-foreground">
+                        <div className="text-[10px] text-foreground/65">
                           {o.description}
                         </div>
                       )}
@@ -248,7 +248,7 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
 
       {/* ACP config loading */}
       {isACPAgent && acpConfigOptionsLoading && !showACPConfigOptions && (
-        <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+        <DropdownMenuItem disabled className="text-xs text-foreground/65">
           <Loader2 className="h-3 w-3 animate-spin" />
           Loading options...
         </DropdownMenuItem>
@@ -256,7 +256,7 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
 
       {/* ACP no config options available */}
       {isACPAgent && !acpConfigOptionsLoading && !showACPConfigOptions && (
-        <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+        <DropdownMenuItem disabled className="text-xs text-foreground/65">
           Could not load options for this agent
         </DropdownMenuItem>
       )}
@@ -274,12 +274,12 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
       />
       {selectedAgent?.name ?? "Claude Code"}
       {!isACPAgent && !modelsLoading && selectedModelLabel && (
-        <span className="text-muted-foreground/70">
+        <span className="text-foreground/65">
           · {selectedModelLabel}
         </span>
       )}
       {!isACPAgent && modelsLoading && (
-        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/50" />
+        <Loader2 className="h-3 w-3 animate-spin text-foreground/65" />
       )}
       {isACPAgent &&
         showACPConfigOptions &&
@@ -290,13 +290,13 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
           const flat = flattenConfigOptions(first.options);
           const current = flat.find((o) => o.value === first.currentValue);
           return (
-            <span className="text-muted-foreground/70">
+            <span className="text-foreground/65">
               · {current?.name ?? first.currentValue}
             </span>
           );
         })()}
       {isACPAgent && acpConfigOptionsLoading && !showACPConfigOptions && (
-        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/50" />
+        <Loader2 className="h-3 w-3 animate-spin text-foreground/65" />
       )}
       <ChevronDown className="size-3" />
     </>
@@ -329,7 +329,7 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
             {agent.name}
           </div>
           {isCrossEngine && (
-            <div className="text-[10px] text-muted-foreground/70">
+            <div className="text-[10px] text-foreground/65">
               Opens new chat
             </div>
           )}
@@ -387,7 +387,7 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
           <>
             {firstPartyAgents.length > 0 && (
               <DropdownMenuGroup>
-                <DropdownMenuLabel className="text-[10px] font-medium text-muted-foreground">
+                <DropdownMenuLabel className="text-[10px] font-medium text-foreground/65">
                   Engines
                 </DropdownMenuLabel>
                 {firstPartyAgents.map((a) => renderAgent(a, willOpenNewChat(a)))}
@@ -397,7 +397,7 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
               <>
                 {firstPartyAgents.length > 0 && <DropdownMenuSeparator />}
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel className="text-[10px] font-medium text-muted-foreground">
+                  <DropdownMenuLabel className="text-[10px] font-medium text-foreground/65">
                     ACP Agents
                   </DropdownMenuLabel>
                   {acpAgents.map((a) => renderAgent(a, willOpenNewChat(a)))}
@@ -412,7 +412,7 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onManageACPs}>
-              <Settings className="h-3.5 w-3.5 text-muted-foreground" />
+              <Settings className="h-3.5 w-3.5 text-foreground/65" />
               Manage ACPs
             </DropdownMenuItem>
           </>

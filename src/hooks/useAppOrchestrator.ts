@@ -42,7 +42,7 @@ export function useAppOrchestrator() {
     ? manager.activeSession.engine
     : (selectedAgent?.engine ?? "claude");
   const settingsProjectId = manager.activeSession?.projectId ?? manager.draftProjectId ?? null;
-  const settings = useSettings(settingsProjectId, settingsEngine);
+  const settings = useSettings(settingsProjectId, spaceManager.activeSpaceId, settingsEngine);
   const resolvedTheme = useTheme(settings.theme);
   const { agents, refresh: refreshAgents, saveAgent, deleteAgent } = useAgentRegistry();
   useAcpAgentAutoUpdate({ installedAgents: agents, refreshInstalledAgents: refreshAgents });

@@ -149,7 +149,7 @@ function renderWithMentions(text: string): ReactNode[] {
           {isDir ? (
             <Folder className="inline h-3 w-3 shrink-0 self-center text-blue-400" />
           ) : (
-            <File className="inline h-3 w-3 shrink-0 self-center text-muted-foreground" />
+            <File className="inline h-3 w-3 shrink-0 self-center text-foreground/65" />
           )}
           {filePath}
         </span>
@@ -206,7 +206,7 @@ export const MessageBubble = memo(function MessageBubble({
     return (
       <div className={cn(
         "mx-auto max-w-3xl px-4 py-1 text-center text-xs",
-        isError ? "text-destructive" : "text-muted-foreground",
+        isError ? "text-destructive" : "text-foreground/65",
       )}>
         <div className="inline-flex items-center gap-1.5">
           {isError ? <AlertCircle className="h-3 w-3" /> : <Info className="h-3 w-3" />}
@@ -249,7 +249,7 @@ export const MessageBubble = memo(function MessageBubble({
                 />
                 {renderWithMentions(displayContent)}
                 {message.isQueued && (
-                  <div className="mt-2 flex items-center gap-2 border-t border-foreground/[0.06] pt-2 text-[11px] text-foreground/75">
+                  <div className="mt-2 flex items-center gap-2 border-t border-foreground/30 pt-2 text-[11px] text-foreground/85">
                     <Clock className="h-3 w-3 shrink-0" />
                     <span>Queued</span>
                     {(onSendQueuedNow || onUnqueueQueued) && (
@@ -261,7 +261,7 @@ export const MessageBubble = memo(function MessageBubble({
                               "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-all",
                               isSendNextQueued
                                 ? "bg-primary/15 text-primary hover:bg-primary/25"
-                                : "text-foreground/70 hover:bg-foreground/[0.08] hover:text-foreground",
+                                : "text-foreground/85 hover:bg-foreground/[0.08] hover:text-foreground",
                             )}
                             onClick={() => onSendQueuedNow(message.id)}
                           >
@@ -272,7 +272,7 @@ export const MessageBubble = memo(function MessageBubble({
                         {onUnqueueQueued && (
                           <button
                             type="button"
-                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-foreground/70 transition-all hover:bg-destructive/10 hover:text-destructive"
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-foreground/85 transition-all hover:bg-destructive/10 hover:text-destructive"
                             onClick={() => onUnqueueQueued(message.id)}
                           >
                             <X className="h-2.5 w-2.5" />
@@ -294,7 +294,7 @@ export const MessageBubble = memo(function MessageBubble({
             <div className="pointer-events-none absolute end-0 -bottom-0.5 w-max opacity-0 transition-opacity group-hover/user:opacity-100">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="pointer-events-auto flex items-center gap-1 whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] text-foreground/30 transition-colors hover:text-foreground/60">
+                  <button className="pointer-events-auto flex items-center gap-1 whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] text-foreground/30 transition-colors hover:text-foreground/85">
                     <Undo2 className="h-3 w-3" />
                     Revert to here
                   </button>
@@ -343,7 +343,7 @@ export const MessageBubble = memo(function MessageBubble({
           <div className={cn("min-w-0 max-w-[var(--chat-assistant-message-max-width,85%)]", assistantTurnDividerLabel && "w-full")}>
             <div className={cn("flow-root wrap-break-word", CHAT_CONTENT_STACK_CLASS, assistantTurnDividerLabel ? "w-full" : "min-w-0")}>
             {assistantTurnDividerLabel ? (
-              <div className="relative mb-3 w-full text-center text-[11px] text-muted-foreground/70">
+              <div className="relative mb-3 w-full text-center text-[11px] text-foreground/65">
                 <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-foreground/[0.08]" />
                 <span className="relative inline-block bg-background px-3 font-medium">
                   {assistantTurnDividerLabel}
@@ -363,7 +363,7 @@ export const MessageBubble = memo(function MessageBubble({
                   <div
                     ref={proseRef}
                     className={cn(
-                      "flow-root prose dark:prose-invert prose-sm max-w-none text-foreground [&_li::marker]:text-foreground dark:[&_li::marker]:text-foreground/70",
+                      "flow-root prose dark:prose-invert prose-sm max-w-none text-foreground [&_li::marker]:text-foreground dark:[&_li::marker]:text-foreground/85",
                       CHAT_PROSE_EDGE_CLASS,
                     )}
                   >
@@ -430,7 +430,7 @@ function CodeBlock(props: React.HTMLAttributes<HTMLElement> & { node?: unknown }
     return (
       <div className="not-prose group/code relative my-2 rounded-lg bg-foreground/[0.03] overflow-hidden" style={{ contain: "content" }}>
         <div className="flex items-center justify-between bg-foreground/[0.04] px-3 py-1">
-          <span className="text-[11px] text-muted-foreground">{language}</span>
+          <span className="text-[11px] text-foreground/65">{language}</span>
           <CopyButton text={code} className="opacity-0 transition-opacity group-hover/code:opacity-100" />
         </div>
         {isStreaming ? (
@@ -459,7 +459,7 @@ function CodeBlock(props: React.HTMLAttributes<HTMLElement> & { node?: unknown }
       <div className="not-prose group/code relative my-2 rounded-lg bg-foreground/[0.03] overflow-hidden" style={{ contain: "content" }}>
         <div className="flex items-center justify-between bg-foreground/[0.04] px-3 py-1">
           {guessedLang ? (
-            <span className="text-[11px] text-muted-foreground">{guessedLang}</span>
+            <span className="text-[11px] text-foreground/65">{guessedLang}</span>
           ) : (
             <span />
           )}

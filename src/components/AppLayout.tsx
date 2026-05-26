@@ -281,8 +281,9 @@ export function AppLayout() {
   });
 
   const mainWorkspaceProjectId = activeSpaceProject?.id ?? activeProjectId ?? null;
+  const mainWorkspacePersistKey = `main:${spaceManager.activeSpaceId}:${mainWorkspaceProjectId ?? "__none__"}`;
   const mainCombinedWorkspaceWidthRef = useRef(0);
-  const mainToolWorkspace = useMainToolWorkspace(mainWorkspaceProjectId, {
+  const mainToolWorkspace = useMainToolWorkspace(mainWorkspaceProjectId, spaceManager.activeSpaceId, {
     activeToolIds: settings.activeTools,
     toolOrder: settings.toolOrder,
     bottomTools: settings.bottomTools,
@@ -751,6 +752,9 @@ export function AppLayout() {
     isSpaceSwitching,
     isCrossSpaceSessionVisible,
   });
+  const chatPaneTextVars = useMemo(() => ({
+    "--foreground": resolvedTheme === "dark" ? "oklch(0.985 0 0)" : "oklch(0 0 0)",
+  }) as React.CSSProperties, [resolvedTheme]);
 
   const getPreviewPaneMetrics = useCallback((previewIndex: number) => {
     const widthPercent = (previewTopRowFractions[previewIndex] ?? (1 / previewTopRowCount)) * 100;
@@ -991,7 +995,7 @@ export function AppLayout() {
   ) => (
     <ToolIslandContent
       toolId={toolId}
-      persistKey={`main:${spaceManager.activeSpaceId}`}
+      persistKey={mainWorkspacePersistKey}
       headerControls={controls}
       projectPath={activeProjectPath}
       projectRoot={activeSpaceProject?.path}
@@ -1003,7 +1007,7 @@ export function AppLayout() {
       hasLiveSession={!manager.isDraft}
       {...toolIslandCtx}
     />
-  ), [activeProjectId, activeProjectPath, activeSpaceProject?.path, manager.activeSession?.engine, manager.activeSessionId, manager.isDraft, manager.messages, spaceManager.activeSpaceId, toolIslandCtx]);
+  ), [activeProjectId, activeProjectPath, activeSpaceProject?.path, mainWorkspacePersistKey, manager.activeSession?.engine, manager.activeSessionId, manager.isDraft, manager.messages, toolIslandCtx]);
   const handleMoveMainBottomToolToTop = useCallback(
     (islandId: string) => moveBottomToolToTop(mainToolWorkspace, islandId, canFitToolAsNewColumn),
     [mainToolWorkspace, canFitToolAsNewColumn],
@@ -1262,6 +1266,7 @@ export function AppLayout() {
                             splitToolColumnResize={splitToolColumnResize}
                             toolIslandCtx={toolIslandCtx}
                             spaceActiveSpaceId={spaceManager.activeSpaceId}
+                            chatPaneTextVars={chatPaneTextVars}
                             sidebarOpen={sidebar.isOpen}
                             sidebarToggle={sidebar.toggle}
                             showThinking={showThinking}
@@ -1449,9 +1454,11 @@ export function AppLayout() {
             style={(showSinglePaneSplitPreview
               ? {
                   ...singlePanePreviewPaneStyle,
+                  ...chatPaneTextVars,
                   "--chat-fade-strength": String(chatFadeStrength),
                 }
               : {
+                  ...chatPaneTextVars,
                   minWidth: mainWorkspaceChatMinWidth,
                   "--chat-fade-strength": String(chatFadeStrength),
                 }) as React.CSSProperties}

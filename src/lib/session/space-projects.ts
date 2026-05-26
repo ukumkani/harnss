@@ -1,4 +1,5 @@
 import type { ChatSession, Project } from "@/types";
+import { makeProjectScopeKey } from "@/stores/settings-store";
 
 interface ResolveProjectForSpaceOptions {
   spaceId: string;
@@ -68,7 +69,26 @@ export function resolveProjectForSpace({
   return projectsInSpace[0];
 }
 
-export function getStoredProjectGitCwd(projectId: string): string | null {
+function readSettingsStoreGitCwd(projectId: string, spaceId: string): string | null {
+  try {
+    const raw = localStorage.getItem("harnss-settings-store");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { state?: { projects?: Record<string, { gitCwd?: unknown }> } };
+    const projects = parsed.state?.projects;
+    if (!projects) return null;
+    const scoped = projects[makeProjectScopeKey(spaceId, projectId)]?.gitCwd;
+    const legacy = projects[projectId]?.gitCwd;
+    const value = typeof scoped === "string" ? scoped : typeof legacy === "string" ? legacy : null;
+    return value?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+export function getStoredProjectGitCwd(projectId: string, spaceId = "default"): string | null {
+  const storedSetting = readSettingsStoreGitCwd(projectId, spaceId);
+  if (storedSetting) return storedSetting;
+
   const stored = localStorage.getItem(`harnss-${projectId}-git-cwd`);
   if (!stored) return null;
 

@@ -79,6 +79,7 @@ export interface SplitTopRowItemProps {
   // Tool island shared context
   toolIslandCtx: ToolIslandContextProps;
   spaceActiveSpaceId: string;
+  chatPaneTextVars: React.CSSProperties;
 
   // Sidebar
   sidebarOpen: boolean;
@@ -501,6 +502,7 @@ function SplitTopRowItemInner(props: SplitTopRowItemProps) {
       onSelectWorktree: isActiveSessionPane ? handleAgentWorktreeChange : undefined,
       codexModelData: props.codexRawModels,
       spaceId: spaceActiveSpaceId,
+      chatPaneTextVars: props.chatPaneTextVars,
       onRevert: isActiveSessionPane ? handleRevert : undefined,
       onFullRevert: isActiveSessionPane ? handleFullRevert : undefined,
       onTopScrollProgress: makePaneScrollCallback(displayIndex),

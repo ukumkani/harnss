@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { resolveProjectForSpace, resolveRememberedSessionForSpace } from "@/lib/session/space-projects";
+import { beforeEach, describe, expect, it } from "vitest";
+import { getStoredProjectGitCwd, resolveProjectForSpace, resolveRememberedSessionForSpace } from "@/lib/session/space-projects";
 import type { ChatSession, Project } from "@/types";
 
 const projects: Project[] = [
@@ -30,6 +30,21 @@ const sessions: Pick<ChatSession, "id" | "projectId">[] = [
   { id: "session-a", projectId: "project-a" },
   { id: "session-b", projectId: "project-b" },
 ];
+
+function createLocalStorageMock() {
+  const store = new Map<string, string>();
+  return {
+    clear() {
+      store.clear();
+    },
+    getItem(key: string) {
+      return store.get(key) ?? null;
+    },
+    setItem(key: string, value: string) {
+      store.set(key, value);
+    },
+  };
+}
 
 describe("resolveProjectForSpace", () => {
   it("keeps the active project when it already belongs to the selected space", () => {
@@ -89,5 +104,40 @@ describe("resolveRememberedSessionForSpace", () => {
       projects,
       sessions,
     })).toBeNull();
+  });
+});
+
+describe("getStoredProjectGitCwd", () => {
+  beforeEach(() => {
+    Object.defineProperty(globalThis, "localStorage", {
+      value: createLocalStorageMock(),
+      configurable: true,
+      writable: true,
+    });
+  });
+
+  it("prefers the space/project scoped cwd over the legacy project cwd", () => {
+    localStorage.setItem("harnss-settings-store", JSON.stringify({
+      state: {
+        projects: {
+          "space-a:project-a": { gitCwd: "/tmp/space-a-worktree" },
+          "project-a": { gitCwd: "/tmp/legacy-worktree" },
+        },
+      },
+    }));
+
+    expect(getStoredProjectGitCwd("project-a", "space-a")).toBe("/tmp/space-a-worktree");
+  });
+
+  it("falls back to the legacy project cwd when no scoped cwd exists", () => {
+    localStorage.setItem("harnss-settings-store", JSON.stringify({
+      state: {
+        projects: {
+          "project-a": { gitCwd: "/tmp/legacy-worktree" },
+        },
+      },
+    }));
+
+    expect(getStoredProjectGitCwd("project-a", "space-a")).toBe("/tmp/legacy-worktree");
   });
 });

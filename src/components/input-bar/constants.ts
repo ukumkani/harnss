@@ -4,7 +4,7 @@ import type { AcpPermissionBehavior } from "@/types";
  *  Applied on top of `<Button variant="ghost" size="xs">` to match the
  *  toolbar look: muted text, subtle hover, rounded-lg corners. */
 export const TOOLBAR_BTN =
-  "rounded-lg font-normal text-muted-foreground transition-colors duration-150 hover:bg-muted/50 hover:text-foreground";
+  "rounded-lg font-normal text-foreground/65 transition-colors duration-150 hover:bg-muted/50 hover:text-foreground";
 
 export const ACCEPTED_IMAGE_TYPES = [
   "image/png",

@@ -93,7 +93,7 @@ export const ChatHeader = memo(function ChatHeader({
         <Button
           variant="ghost"
           size="icon"
-          className={`no-drag h-7 w-7 text-muted-foreground/60 hover:text-foreground ${
+          className={`no-drag h-7 w-7 text-foreground/65 hover:text-foreground ${
             islandLayout ? "mt-0.5" : ""
           } ${macIslandTitlebarOffsetClass}`}
           onClick={onToggleSidebar}
@@ -107,7 +107,7 @@ export const ChatHeader = memo(function ChatHeader({
         <Tooltip>
           <TooltipTrigger asChild>
             <span className={`no-drag flex items-center justify-center ${macIslandTitlebarOffsetClass}`}>
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-foreground/65" />
             </span>
           </TooltipTrigger>
           {(model || permissionDisplay) && (
@@ -144,11 +144,11 @@ export const ChatHeader = memo(function ChatHeader({
           } ${macIslandTitlebarOffsetClass}`}
         >
           {projectName && (
-            <div className="truncate text-[10px] font-semibold tracking-wider text-muted-foreground/70 uppercase">
+            <div className="truncate text-[10px] font-semibold tracking-wider text-foreground/65 uppercase">
               {projectName}
             </div>
           )}
-          <div className="truncate text-sm font-medium text-foreground/80">
+          <div className="truncate text-sm font-medium text-foreground/85">
             {title}
           </div>
         </div>
@@ -163,7 +163,7 @@ export const ChatHeader = memo(function ChatHeader({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="no-drag h-6 w-6 text-muted-foreground/40 hover:text-foreground/60"
+                  className="no-drag h-6 w-6 text-foreground/65 hover:text-foreground/85"
                   onClick={onClosePane}
                 >
                   <X className="h-3.5 w-3.5" />
@@ -199,7 +199,7 @@ export const ChatHeader = memo(function ChatHeader({
           {hasDetails && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="no-drag flex cursor-default items-center justify-center rounded-full p-0.5 text-muted-foreground/30 transition-colors hover:text-muted-foreground">
+                <span className="no-drag flex cursor-default items-center justify-center rounded-full p-0.5 text-foreground/30 transition-colors hover:text-foreground/65">
                   <Info className="h-3.5 w-3.5" />
                 </span>
               </TooltipTrigger>

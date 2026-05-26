@@ -65,8 +65,8 @@ function PermissionDropdown({
               {details ? (
                 <div className="flex min-w-0 flex-col">
                   <span>{m.label}</span>
-                  <span className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <span className="font-mono text-foreground/80">
+                  <span className="mt-0.5 flex items-center gap-1 text-[10px] text-foreground/65">
+                    <span className="font-mono text-foreground/85">
                       {details.policy}
                     </span>
                     <span aria-hidden="true">&middot;</span>
@@ -105,7 +105,7 @@ function PlanModeToggle({
           className={`rounded-lg font-normal ${
             planMode
               ? "text-blue-400 bg-blue-500/10 hover:bg-blue-500/15 hover:text-blue-400 dark:hover:bg-blue-500/15"
-              : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+              : "text-foreground/65 hover:bg-muted/40 hover:text-foreground"
           }`}
         >
           <Map className="size-3" />
@@ -176,7 +176,7 @@ export function EngineControls({
             >
               <div>
                 <div>{b.label}</div>
-                <div className="text-[10px] text-muted-foreground">
+                <div className="text-[10px] text-foreground/65">
                   {b.description}
                 </div>
               </div>

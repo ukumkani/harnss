@@ -66,7 +66,7 @@ export function useAppSpaceWorkflow(input: UseAppSpaceWorkflowInput) {
   const activeProject = input.projectManager.projects.find((project) => project.id === activeProjectId) ?? null;
   const activeProjectPath = activeProject?.path;
   const activeSpaceTerminalCwd = activeSpaceProject
-    ? (getStoredProjectGitCwd(activeSpaceProject.id) ?? activeSpaceProject.path)
+    ? (getStoredProjectGitCwd(activeSpaceProject.id, input.spaceManager.activeSpaceId) ?? activeSpaceProject.path)
     : null;
   const hasProjects = input.projectManager.projects.length > 0;
 
