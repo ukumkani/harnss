@@ -11,6 +11,17 @@ import {
 } from "./types";
 import type { SharedSessionRefs, SharedSessionSetters, EngineHooks, StartOptions } from "./types";
 
+function getPermissionModeAgentNotice(permissionMode: string): string {
+  switch (permissionMode) {
+    case "bypassPermissions":
+      return "System notice: This session's permission mode is now Allow All (bypassPermissions). Treat tool and edit approval as granted for this session. Only ask the user when you need information or a non-permission decision.";
+    case "acceptEdits":
+      return "System notice: This session's permission mode is now Auto Accept (acceptEdits). Treat trusted edits as approved for this session, but continue to ask for untrusted or higher-risk actions.";
+    default:
+      return "System notice: This session's permission mode is now Ask (default). Ask for user approval before tool calls, edits, or other permission-sensitive actions.";
+  }
+}
+
 interface UseSessionSettingsParams {
   refs: SharedSessionRefs;
   setters: SharedSessionSetters;
@@ -74,6 +85,38 @@ export function useSessionSettings({
       }
     }).catch(() => { /* session may have been deleted */ });
   }, [sessionsRef, setSessions]);
+
+  const notifyAgentPermissionMode = useCallback((sessionId: string, sessionEngine: string | undefined, permissionMode: string) => {
+    if (!liveSessionIdsRef.current.has(sessionId)) return;
+
+    const notice = getPermissionModeAgentNotice(permissionMode);
+    const engineId = sessionEngine ?? "claude";
+    if (engineId === "acp") {
+      void window.claude.acp.prompt(sessionId, notice).catch((err) => {
+        captureException(err instanceof Error ? err : new Error(String(err)), { label: "ACP_PERMISSION_MODE_NOTICE_ERR" });
+      });
+      return;
+    }
+
+    if (engineId === "codex") {
+      void window.claude.codex.send(
+        sessionId,
+        notice,
+        [],
+        refs.codexEffortRef.current,
+      ).catch((err) => {
+        captureException(err instanceof Error ? err : new Error(String(err)), { label: "CODEX_PERMISSION_MODE_NOTICE_ERR" });
+      });
+      return;
+    }
+
+    void window.claude.send(sessionId, {
+      type: "user",
+      message: { role: "user", content: notice },
+    }).catch((err) => {
+      captureException(err instanceof Error ? err : new Error(String(err)), { label: "CLAUDE_PERMISSION_MODE_NOTICE_ERR" });
+    });
+  }, [liveSessionIdsRef, refs.codexEffortRef]);
 
   // ── Active model ──
 
@@ -198,15 +241,21 @@ export function useSessionSettings({
 
     persistSessionPatch(id, { permissionMode: normalizedPermission });
 
-    const sessionEngine = sessionsRef.current.find((s) => s.id === id)?.engine ?? "claude";
+    const session = sessionsRef.current.find((s) => s.id === id);
+    const previousPermission = session?.permissionMode?.trim() || startOptionsRef.current.permissionMode;
+    const sessionEngine = session?.engine ?? "claude";
+    const shouldNotifyPermissionMode = normalizedPermission !== previousPermission;
     if (sessionEngine === "claude") {
-      engine.setPermissionMode(effectiveClaudeMode);
+      void engine.setPermissionMode(effectiveClaudeMode).then(() => {
+        if (shouldNotifyPermissionMode) notifyAgentPermissionMode(id, sessionEngine, normalizedPermission);
+      });
       return;
     }
     if (sessionEngine === "codex") {
       engine.setPermissionMode(normalizedPermission);
     }
-  }, [engine.setPermissionMode, persistSessionPatch]);
+    if (shouldNotifyPermissionMode) notifyAgentPermissionMode(id, sessionEngine, normalizedPermission);
+  }, [engine.setPermissionMode, notifyAgentPermissionMode, persistSessionPatch, startOptionsRef]);
 
   // ── Active plan mode ──
 
@@ -448,9 +497,14 @@ export function useSessionSettings({
     const normalizedPermission = permissionMode === "plan"
       ? DEFAULT_PERMISSION_MODE
       : permissionMode;
+    const previousPermission = session.permissionMode?.trim();
     persistSessionPatch(sessionId, { permissionMode: normalizedPermission });
 
-    if ((session.engine ?? "claude") !== "claude" || !liveSessionIdsRef.current.has(sessionId)) {
+    const sessionEngine = session.engine ?? "claude";
+    const shouldNotifyPermissionMode = normalizedPermission !== previousPermission;
+
+    if (sessionEngine !== "claude" || !liveSessionIdsRef.current.has(sessionId)) {
+      if (shouldNotifyPermissionMode) notifyAgentPermissionMode(sessionId, sessionEngine, normalizedPermission);
       return;
     }
 
@@ -461,8 +515,10 @@ export function useSessionSettings({
     const result = await window.claude.setPermissionMode(sessionId, effectiveClaudeMode);
     if (result?.error) {
       toast.error("Failed to update permission mode", { description: result.error });
+      return;
     }
-  }, [liveSessionIdsRef, persistSessionPatch, sessionsRef]);
+    if (shouldNotifyPermissionMode) notifyAgentPermissionMode(sessionId, sessionEngine, normalizedPermission);
+  }, [liveSessionIdsRef, notifyAgentPermissionMode, persistSessionPatch, sessionsRef]);
 
   // ── Per-session plan mode ──
 

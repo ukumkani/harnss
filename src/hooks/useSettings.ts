@@ -363,6 +363,14 @@ export function useSettings(projectId: string | null, engine: EngineId = "claude
     }
     setPermissionModeRaw(mode);
     localStorage.setItem("harnss-permission-mode", mode);
+    const acpBehavior: AcpPermissionBehavior =
+      mode === "bypassPermissions"
+        ? "allow_all"
+        : mode === "acceptEdits"
+        ? "auto_accept"
+        : "ask";
+    setAcpPermissionBehaviorRaw(acpBehavior);
+    localStorage.setItem("harnss-acp-permission-behavior", acpBehavior);
   }, []);
 
   const [acpPermissionBehavior, setAcpPermissionBehaviorRaw] = useState<AcpPermissionBehavior>(() => {
