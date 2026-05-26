@@ -220,14 +220,14 @@ export const MessageBubble = memo(function MessageBubble({
     const checkpointId = message.checkpointId;
     const canRevert = !!checkpointId && (!!onRevert || !!onFullRevert);
     return (
-      <div className={cn("group/user flex justify-end", CHAT_ROW_CLASS, message.isQueued && "opacity-60")}>
+      <div className={cn("group/user flex justify-end", CHAT_ROW_CLASS, message.isQueued && "opacity-80")}>
         <div className={cn("relative max-w-[var(--chat-user-message-max-width,80%)]", canRevert && "pb-5")}>
           <Tooltip>
             <TooltipTrigger asChild>
               <div className={cn(
                 "rounded-2xl rounded-tr-sm bg-foreground/[0.06] px-3.5 py-2 text-sm text-foreground wrap-break-word whitespace-pre-wrap",
-                message.isQueued && !isSendNextQueued && "border border-dashed border-foreground/10",
-                message.isQueued && isSendNextQueued && "border border-dashed border-red-400/50",
+                message.isQueued && "bg-foreground/[0.12]",
+                message.isQueued && "border border-dashed border-[color:var(--foreground)]",
               )}>
                 {message.images && message.images.length > 0 && (
                   <div className="mb-2 flex flex-wrap gap-2">
@@ -249,7 +249,7 @@ export const MessageBubble = memo(function MessageBubble({
                 />
                 {renderWithMentions(displayContent)}
                 {message.isQueued && (
-                  <div className="mt-2 flex items-center gap-2 border-t border-foreground/[0.06] pt-2 text-[11px] text-muted-foreground">
+                  <div className="mt-2 flex items-center gap-2 border-t border-foreground/[0.06] pt-2 text-[11px] text-foreground/75">
                     <Clock className="h-3 w-3 shrink-0" />
                     <span>Queued</span>
                     {(onSendQueuedNow || onUnqueueQueued) && (
@@ -261,7 +261,7 @@ export const MessageBubble = memo(function MessageBubble({
                               "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-all",
                               isSendNextQueued
                                 ? "bg-primary/15 text-primary hover:bg-primary/25"
-                                : "text-muted-foreground hover:bg-foreground/[0.08] hover:text-foreground",
+                                : "text-foreground/70 hover:bg-foreground/[0.08] hover:text-foreground",
                             )}
                             onClick={() => onSendQueuedNow(message.id)}
                           >
@@ -272,7 +272,7 @@ export const MessageBubble = memo(function MessageBubble({
                         {onUnqueueQueued && (
                           <button
                             type="button"
-                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive"
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-foreground/70 transition-all hover:bg-destructive/10 hover:text-destructive"
                             onClick={() => onUnqueueQueued(message.id)}
                           >
                             <X className="h-2.5 w-2.5" />

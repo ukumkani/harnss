@@ -39,6 +39,9 @@ const TOOL_LABELS: Record<string, string> = {
   NotebookEdit: "Edit a notebook",
 };
 
+const PERMISSION_PROMPT_SURFACE_CLASS =
+  "pointer-events-auto rounded-2xl border border-[color:var(--foreground)] bg-background shadow-lg";
+
 // ── Scoped "always allow" options ──
 
 const SCOPE_LABELS: Record<PermissionUpdateDestination, string> = {
@@ -216,7 +219,7 @@ function ExitPlanModePrompt({ request, onRespond }: PermissionPromptProps) {
 
   return (
     <div className={`mx-auto w-full px-4 pb-4 ${BOTTOM_CHAT_MAX_WIDTH_CLASS}`}>
-      <div className="pointer-events-auto rounded-2xl border border-border/60 bg-background/55 shadow-lg backdrop-blur-lg">
+      <div className={PERMISSION_PROMPT_SURFACE_CLASS}>
         <div className="flex flex-col gap-3 px-4 py-3.5">
           <p className="text-[13px] text-foreground">
             Ready to implement. How should permissions work?
@@ -376,7 +379,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
       <div
         className={`mx-auto w-full px-4 pb-4 ${BOTTOM_CHAT_MAX_WIDTH_CLASS}`}
       >
-        <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-border/60 bg-background/55 px-3.5 py-2.5 shadow-lg backdrop-blur-lg">
+        <div className={`${PERMISSION_PROMPT_SURFACE_CLASS} flex items-center gap-3 px-3.5 py-2.5`}>
           <MessageCircleQuestion className="h-4 w-4 shrink-0 text-foreground/50" />
           <span className="flex-1 text-[12px] text-foreground/70">
             {isMulti
@@ -398,7 +401,7 @@ function AskUserQuestionPrompt({ request, onRespond }: PermissionPromptProps) {
 
   return (
     <div className={`mx-auto w-full px-4 pb-4 ${BOTTOM_CHAT_MAX_WIDTH_CLASS}`}>
-      <div className="pointer-events-auto rounded-2xl border border-border/60 bg-background/55 shadow-lg backdrop-blur-lg">
+      <div className={PERMISSION_PROMPT_SURFACE_CLASS}>
         {/* Current question content */}
         <div className="flex flex-col gap-2 px-3.5 py-3">
           {/* Question text with step indicator */}
@@ -612,7 +615,7 @@ export function PermissionPrompt({
 
   return (
     <div className={`mx-auto w-full px-4 pb-4 ${BOTTOM_CHAT_MAX_WIDTH_CLASS}`}>
-      <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-border/60 bg-background/55 px-4 py-3 shadow-lg backdrop-blur-lg">
+      <div className={`${PERMISSION_PROMPT_SURFACE_CLASS} flex items-start gap-3 px-4 py-3`}>
         <ShieldAlert className="h-5 w-5 shrink-0 text-foreground/60" />
 
         <div className="min-w-0 flex-1 space-y-2">
@@ -622,7 +625,7 @@ export function PermissionPrompt({
               <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
                 {detail.label}
               </p>
-              <div className="max-h-28 overflow-auto rounded-md bg-foreground/[0.04] px-3 py-2 font-mono text-[11px] text-foreground/75 whitespace-pre-wrap wrap-break-word">
+              <div className="rounded-md bg-foreground/[0.04] px-3 py-2 font-mono text-[11px] text-foreground/75 whitespace-pre-wrap wrap-break-word">
                 {detail.value}
               </div>
               {detail.meta && (
