@@ -17,13 +17,13 @@ function formatTokenCount(count: number): string {
 function getContextColor(percent: number): string {
   if (percent >= 80) return "text-red-600 dark:text-red-400";
   if (percent >= 60) return "text-amber-600 dark:text-amber-400";
-  return "text-muted-foreground/60";
+  return "text-foreground/65";
 }
 
 function getContextStrokeColor(percent: number): string {
   if (percent >= 80) return "stroke-red-600 dark:stroke-red-400";
   if (percent >= 60) return "stroke-amber-600 dark:stroke-amber-400";
-  return "stroke-foreground/40";
+  return "stroke-foreground/30";
 }
 
 export interface ContextGaugeProps {
@@ -72,7 +72,7 @@ export const ContextGauge = memo(function ContextGauge({
               cy="10"
               r={radius}
               fill="none"
-              className="stroke-muted-foreground/20 dark:stroke-muted/30"
+              className="stroke-foreground/30"
               strokeWidth="2.5"
             />
             <circle
@@ -81,7 +81,7 @@ export const ContextGauge = memo(function ContextGauge({
               r={radius}
               fill="none"
               className={
-                isCompacting ? "stroke-foreground/60" : getContextStrokeColor(percent)
+                isCompacting ? "stroke-foreground/85" : getContextStrokeColor(percent)
               }
               strokeWidth="2.5"
               strokeLinecap="round"

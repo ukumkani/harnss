@@ -52,4 +52,46 @@ describe("settings store", () => {
     expect(secondProjects["project-1"]?.activeTools).toBe(firstActiveTools);
     expect(secondProjects["project-1"]?.activeTools).toEqual(["tasks"]);
   });
+
+  it("selects space/project scoped settings before legacy project settings", async () => {
+    const { makeProjectScopeKey, selectProjectSettings, useSettingsStore } = await import("./settings-store");
+
+    useSettingsStore.setState({
+      projects: {
+        "project-1": {
+          ...selectProjectSettings(useSettingsStore.getState(), "missing"),
+          gitCwd: "/tmp/legacy",
+        },
+        [makeProjectScopeKey("space-1", "project-1")]: {
+          ...selectProjectSettings(useSettingsStore.getState(), "missing"),
+          gitCwd: "/tmp/scoped",
+        },
+      },
+    });
+
+    expect(selectProjectSettings(
+      useSettingsStore.getState(),
+      makeProjectScopeKey("space-1", "project-1"),
+      "project-1",
+    ).gitCwd).toBe("/tmp/scoped");
+  });
+
+  it("falls back to legacy project settings when scoped settings are absent", async () => {
+    const { makeProjectScopeKey, selectProjectSettings, useSettingsStore } = await import("./settings-store");
+
+    useSettingsStore.setState({
+      projects: {
+        "project-1": {
+          ...selectProjectSettings(useSettingsStore.getState(), "missing"),
+          gitCwd: "/tmp/legacy",
+        },
+      },
+    });
+
+    expect(selectProjectSettings(
+      useSettingsStore.getState(),
+      makeProjectScopeKey("space-1", "project-1"),
+      "project-1",
+    ).gitCwd).toBe("/tmp/legacy");
+  });
 });

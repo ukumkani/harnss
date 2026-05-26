@@ -840,7 +840,7 @@ export const InputBar = memo(function InputBar({
           onClick={() => editableRef.current?.focus()}
         >
           {!hasContent && (
-            <div className="pointer-events-none absolute inset-0 flex items-start px-5 pt-4 pb-2.5 text-sm text-muted-foreground/35 select-none">
+            <div className="pointer-events-none absolute inset-0 flex items-start px-5 pt-4 pb-2.5 text-sm text-muted-foreground/55 select-none">
               {placeholderText}
             </div>
           )}
@@ -852,7 +852,7 @@ export const InputBar = memo(function InputBar({
             onPaste={handlePaste}
             className={`min-h-[24px] ${composerScrollable ? "overflow-y-auto" : "overflow-y-hidden"} text-sm leading-relaxed outline-none whitespace-pre-wrap wrap-break-word ${
               isAwaitingAcpOptions
-                ? "cursor-wait text-muted-foreground/60"
+                ? "cursor-wait text-foreground/65"
                 : "text-foreground"
             }`}
             style={composerHeight == null ? undefined : { height: composerHeight }}
@@ -921,8 +921,8 @@ export const InputBar = memo(function InputBar({
                         : speech.isTranscribing
                           ? "text-amber-400"
                           : speech.isModelLoading
-                            ? "text-muted-foreground/40 cursor-wait"
-                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                            ? "text-foreground/65 cursor-wait"
+                            : "text-foreground/65 hover:bg-muted/50 hover:text-foreground"
                     }`}
                   >
                     {speech.isListening ? (
@@ -952,7 +952,7 @@ export const InputBar = memo(function InputBar({
                   <Button
                     variant="ghost"
                     size="xs"
-                    className="rounded-lg font-normal text-muted-foreground/40 cursor-default hover:bg-transparent"
+                    className="rounded-lg font-normal text-foreground/65 cursor-default hover:bg-transparent"
                   >
                     <Mic className="size-3.5" />
                   </Button>
@@ -1028,7 +1028,7 @@ export const InputBar = memo(function InputBar({
                 size="icon"
                 variant="ghost"
                 onClick={onStop}
-                className="h-7 w-7 rounded-full text-muted-foreground transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
+                className="h-7 w-7 rounded-full text-foreground/65 transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
               >
                 <Square className="h-3 w-3" />
               </Button>
@@ -1076,12 +1076,12 @@ export const InputBar = memo(function InputBar({
                 </strong>
                 ).
               </p>
-              <p className="text-muted-foreground">
+              <p className="text-foreground/85">
                 Sending this much content will consume a significant portion
                 of the context window and may impact response quality.
               </p>
               {deepFolderInfo.warnings.length > 0 && (
-                <div className="mt-2 text-xs text-muted-foreground">
+                <div className="mt-2 text-xs text-foreground/85">
                   <p className="font-medium">
                     Note: Some files will be skipped:
                   </p>

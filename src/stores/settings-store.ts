@@ -59,7 +59,7 @@ export function normalizeRatios(ratios: number[], count: number, min = 0.1): num
 
 // ── Types ──
 
-/** Per-project settings keyed by projectId */
+/** Per-space/project settings keyed by `${spaceId}:${projectId}` */
 export interface ProjectSettings {
   /** Per-engine model selections (claude, acp, codex) */
   modelsByEngine: Record<EngineId, string>;
@@ -152,7 +152,7 @@ interface SettingsActions {
 }
 
 export interface SettingsStore extends GlobalSettingsState, SettingsActions {
-  /** Per-project settings map, keyed by projectId (or "__none__" for no project) */
+  /** Per-space/project settings map, keyed by `${spaceId}:${projectId}` (or legacy projectId fallback) */
   projects: Record<string, ProjectSettings>;
 }
 
@@ -184,6 +184,10 @@ function getProjectSettings(projects: Record<string, ProjectSettings>, projectId
   const existing = projects[projectId];
   if (!existing) return DEFAULT_PROJECT_SETTINGS;
   return existing;
+}
+
+export function makeProjectScopeKey(spaceId: string, projectId: string | null): string {
+  return `${spaceId || "default"}:${projectId ?? "__none__"}`;
 }
 
 /** Immutably update a single project's settings */
@@ -670,8 +674,12 @@ export function migrateSettingsIfNeeded(): void {
  * Select a specific project's settings from the store.
  * Returns defaults for projects that haven't been configured yet.
  */
-export function selectProjectSettings(state: SettingsStore, projectId: string): ProjectSettings {
-  return getProjectSettings(state.projects, projectId);
+export function selectProjectSettings(
+  state: SettingsStore,
+  projectId: string,
+  legacyProjectId?: string,
+): ProjectSettings {
+  return state.projects[projectId] ?? (legacyProjectId ? state.projects[legacyProjectId] : undefined) ?? DEFAULT_PROJECT_SETTINGS;
 }
 
 /** Derive macBackgroundEffect from transparency + macNativeBackgroundEffect */

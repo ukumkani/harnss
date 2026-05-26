@@ -43,7 +43,7 @@ export const MentionPicker = memo(function MentionPicker({
           {entry.isDir ? (
             <Folder className="h-3.5 w-3.5 shrink-0 text-blue-400" />
           ) : (
-            <File className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <File className="h-3.5 w-3.5 shrink-0 text-foreground/65" />
           )}
           <span className="truncate font-mono text-xs">{entry.path}</span>
         </button>

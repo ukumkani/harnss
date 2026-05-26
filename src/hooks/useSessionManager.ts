@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import type { ChatSession, UIMessage, PermissionRequest, McpServerStatus, McpServerConfig, ModelInfo, AcpPermissionBehavior, EngineId, Project, ACPAuthenticateResult, ACPConfigOption, ACPPermissionEvent } from "@/types";
 import { toMcpStatusState } from "../lib/mcp-utils";
 import { toChatSession } from "../lib/session/records";
+import { getStoredProjectGitCwd } from "../lib/session/space-projects";
 import { BackgroundSessionStore } from "../lib/background/session-store";
 import { createSystemMessage } from "../lib/message-factory";
 import { suppressNextSessionCompletion } from "../lib/notification-utils";
@@ -194,8 +195,7 @@ export function useSessionManager(
   }, []);
 
   const getProjectCwd = useCallback((project: Project) => {
-    const selected = localStorage.getItem(`harnss-${project.id}-git-cwd`)?.trim();
-    return selected || project.path;
+    return getStoredProjectGitCwd(project.id, project.spaceId || "default") || project.path;
   }, []);
 
   // ── Build shared refs/setters/engines objects for sub-hooks ──

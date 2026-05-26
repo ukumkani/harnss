@@ -17,6 +17,7 @@ import {
   selectProjectSettings,
   deriveMacBackgroundEffect,
   DEFAULT_ENGINE_MODELS,
+  makeProjectScopeKey,
 } from "@/stores/settings-store";
 
 function hasSameOrderedValues<T>(left: readonly T[], right: readonly T[]): boolean {
@@ -34,8 +35,9 @@ function hasSameOrderedValues<T>(left: readonly T[], right: readonly T[]): boole
  * Internally subscribes to the Zustand store with fine-grained selectors,
  * then reassembles the same `Settings` object that consumers expect.
  */
-export function useSettingsCompat(projectId: string | null, engine: EngineId = "claude"): Settings {
-  const pid = projectId ?? "__none__";
+export function useSettingsCompat(projectId: string | null, spaceId = "default", engine: EngineId = "claude"): Settings {
+  const legacyPid = projectId ?? "__none__";
+  const pid = makeProjectScopeKey(spaceId, projectId);
 
   // ── Global state (single shallow subscription) ──
 
@@ -86,7 +88,7 @@ export function useSettingsCompat(projectId: string | null, engine: EngineId = "
   // ── Per-project state ──
 
   const projectSettings = useSettingsStore(
-    useShallow((s) => selectProjectSettings(s, pid)),
+    useShallow((s) => selectProjectSettings(s, pid, legacyPid)),
   );
 
   // ── Per-project store setters (require projectId binding) ──

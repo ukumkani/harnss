@@ -129,7 +129,7 @@ export const CommandPicker = memo(function CommandPicker({
               className="h-4 w-4 shrink-0 rounded"
             />
           ) : (
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-muted text-[10px] font-bold text-muted-foreground">
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-muted text-[10px] font-bold text-foreground/65">
               {cmd.source.startsWith("codex") ? "$" : "/"}
             </span>
           )}
@@ -140,13 +140,13 @@ export const CommandPicker = memo(function CommandPicker({
                 {cmd.name}
               </span>
               {cmd.argumentHint && (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-foreground/65">
                   {cmd.argumentHint}
                 </span>
               )}
             </div>
             {cmd.description && (
-              <div className="truncate text-xs text-muted-foreground">
+              <div className="truncate text-xs text-foreground/65">
                 {cmd.description}
               </div>
             )}
