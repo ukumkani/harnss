@@ -466,7 +466,13 @@ export const useSettingsStore = create<SettingsStore>()(
           set({ planMode: true, permissionMode: DEFAULT_PERMISSION_MODE });
           return;
         }
-        set({ permissionMode: mode });
+        const acpPermissionBehavior =
+          mode === "bypassPermissions"
+            ? "allow_all"
+            : mode === "acceptEdits"
+            ? "auto_accept"
+            : "ask";
+        set({ permissionMode: mode, acpPermissionBehavior });
       },
 
       setAcpPermissionBehavior: (b) => set({ acpPermissionBehavior: b }),

@@ -813,6 +813,31 @@ export function useCodex({
     }
 
     const isCommand = data.method === "item/commandExecution/requestApproval";
+    if (sessionInfo?.permissionMode === "bypassPermissions") {
+      void window.claude.codex.respondApproval(
+        data._sessionId,
+        data.rpcId,
+        "accept",
+        { forSession: true },
+      ).then((result) => {
+        if (result?.error) {
+          showCodexPermissionError(result.error);
+          setPendingPermission({
+            requestId: String(data.rpcId),
+            toolName: isCommand ? "Bash" : "Edit",
+            toolInput: isCommand ? {} : {},
+            toolUseId: data.itemId,
+            codexRpcId: data.rpcId,
+          });
+          return;
+        }
+        if (serverRequestRef.current?.rpcId === data.rpcId) {
+          serverRequestRef.current = null;
+        }
+      });
+      return;
+    }
+
     setPendingPermission({
       requestId: String(data.rpcId),
       toolName: isCommand ? "Bash" : "Edit",
@@ -820,7 +845,32 @@ export function useCodex({
       toolUseId: data.itemId,
       codexRpcId: data.rpcId,
     });
-  }, []);
+  }, [sessionInfo?.permissionMode, setPendingPermission]);
+
+  useEffect(() => {
+    if (sessionInfo?.permissionMode !== "bypassPermissions") return;
+    if (!sessionId || !pendingPermission?.codexRpcId) return;
+    if (pendingPermission.toolName === "AskUserQuestion" || pendingPermission.toolName === "ExitPlanMode") return;
+
+    const rpcId = pendingPermission.codexRpcId;
+    void window.claude.codex.respondApproval(
+      sessionId,
+      rpcId,
+      "accept",
+      { forSession: true },
+    ).then((result) => {
+      if (result?.error) {
+        showCodexPermissionError(result.error);
+        return;
+      }
+      if (serverRequestRef.current?.rpcId === rpcId) {
+        serverRequestRef.current = null;
+      }
+      setPendingPermission((current) =>
+        current?.codexRpcId === rpcId ? null : current,
+      );
+    });
+  }, [pendingPermission, sessionId, sessionInfo?.permissionMode, setPendingPermission]);
 
   // ── Exit handling ──
   const handleExit = useCallback((data: CodexExitEvent) => {
@@ -1077,9 +1127,16 @@ export function useCodex({
     [sessionId, pendingPermission, send, sessionInfo?.model],
   );
 
-  const setPermissionMode = useCallback(async (_mode: string) => {
-    // Codex doesn't support live permission mode changes — applied on next turn
-  }, []);
+  const setPermissionMode = useCallback(async (mode: string) => {
+    setSessionInfo((prev) =>
+      upsertCodexSessionInfo(
+        prev,
+        sessionIdRef.current,
+        sessionModelRef.current,
+        mode,
+      ),
+    );
+  }, [setSessionInfo]);
 
   return {
     messages, setMessages,
