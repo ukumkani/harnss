@@ -11,6 +11,10 @@ import { useChatPersistedState } from "@/components/chat-ui-state";
 import { renderAnsi } from "@/lib/ansi";
 
 const MAX_OUTPUT_LINES = 200;
+const COMMAND_CODE_TAG_STYLE = {
+  ...INLINE_CODE_TAG_STYLE,
+  color: "var(--foreground)",
+};
 
 export function BashContent({ message }: { message: UIMessage }) {
   const command = message.toolInput?.command;
@@ -38,16 +42,16 @@ export function BashContent({ message }: { message: UIMessage }) {
 
   return (
     <div className="text-xs">
-      <div className="rounded-md bg-foreground/[0.04] font-mono text-[11px] whitespace-pre-wrap wrap-break-word">
+      <div className="rounded-md bg-foreground/[0.05] font-mono text-[11px] text-foreground whitespace-pre-wrap wrap-break-word">
         {/* Command */}
         {!!command && (
           <div className="px-3 py-2">
-            <span className="text-foreground/30 select-none">$ </span>
+            <span className="text-foreground/65 select-none">$ </span>
             <SyntaxHighlighter
               language="bash"
               style={syntaxStyle}
               customStyle={INLINE_HIGHLIGHT_STYLE}
-              codeTagProps={{ style: INLINE_CODE_TAG_STYLE }}
+              codeTagProps={{ style: COMMAND_CODE_TAG_STYLE }}
               PreTag="span"
               CodeTag="span"
             >
@@ -59,8 +63,8 @@ export function BashContent({ message }: { message: UIMessage }) {
         {/* Output */}
         {hasOutput && (
           <>
-            <div className="mx-3 h-px bg-foreground/[0.06]" />
-            <div className="max-h-48 overflow-auto px-3 py-2 text-foreground/45">
+            <div className="mx-3 h-px bg-foreground/[0.05]" />
+            <div className="max-h-48 overflow-auto px-3 py-2 text-foreground">
               {renderAnsi(displayText)}
             </div>
           </>

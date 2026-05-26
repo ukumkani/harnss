@@ -134,6 +134,7 @@ function extractChanges(msg: UIMessage): FileChange[] {
             fileName: basename(patchPath),
             changeType: "created",
             toolName: "Write",
+            unifiedDiff: patch.diff,
             content: patch.newString ?? "",
             messageId: msg.id,
             timestamp: msg.timestamp,

@@ -292,12 +292,19 @@ export function AppLayout() {
   }, mainCombinedWorkspaceWidthRef);
   const [reviewTargetFiles, setReviewTargetFiles] = useState<string[]>([]);
   const [reviewTargetOpenVersion, setReviewTargetOpenVersion] = useState(0);
+  const [projectFilesRevealPath, setProjectFilesRevealPath] = useState<string | null>(null);
+  const [projectFilesRevealVersion, setProjectFilesRevealVersion] = useState(0);
   const handleOpenProjectFile = useCallback((filePath: string) => {
     setReviewTargetOpenVersion((current) => current + 1);
     setReviewTargetFiles((current) => [
       filePath,
       ...current.filter((entry) => entry !== filePath),
     ]);
+
+    if (mainToolWorkspace.getToolIsland("project-files")) {
+      setProjectFilesRevealPath(filePath);
+      setProjectFilesRevealVersion((current) => current + 1);
+    }
 
     if (mainToolWorkspace.getToolIsland("files")) return;
     mainToolWorkspace.openToolIsland("files", mainToolWorkspace.getRememberedDock("files") ?? "top");
@@ -980,6 +987,8 @@ export function AppLayout() {
     onCloseProjectFile: handleCloseProjectFile,
     reviewTargetFiles,
     reviewTargetOpenVersion,
+    projectFilesRevealPath,
+    projectFilesRevealVersion,
     collapsedRepos: settings.collapsedRepos,
     onToggleRepoCollapsed: settings.toggleRepoCollapsed,
     mcpServerStatuses: manager.mcpServerStatuses,
@@ -1286,6 +1295,7 @@ export function AppLayout() {
                             makePaneScrollCallback={makePaneScrollCallback}
                             setScrollToMessageId={setScrollToMessageId}
                             handlePreviewFile={handlePreviewFile}
+                            handleOpenProjectFile={handleOpenProjectFile}
                             handleElementGrab={handleElementGrab}
                             handleCloseSplitPane={handleCloseSplitPane}
                             codexRawModels={manager.codexRawModels}
@@ -1323,8 +1333,8 @@ export function AppLayout() {
                       <div
                         className={`h-0.5 w-10 rounded-full transition-colors duration-150 ${
                           isResizing || isSplitBottomHeightResizing
-                            ? "bg-foreground/40"
-                            : "bg-transparent group-hover:bg-foreground/25"
+                            ? "bg-foreground/80"
+                            : "bg-foreground/36 group-hover:bg-foreground/50"
                         }`}
                       />
                     </div>
@@ -1434,7 +1444,7 @@ export function AppLayout() {
                 className="flex w-2 shrink-0 items-center justify-center"
                 style={isIsland ? { width: "var(--island-panel-gap)" } : undefined}
               >
-                <div className="h-10 w-0.5 rounded-full bg-foreground/18" />
+                <div className="h-10 w-0.5 rounded-full bg-foreground/36" />
               </motion.div>
             </>
           )}
@@ -1532,6 +1542,7 @@ export function AppLayout() {
                 onSendQueuedNow={handleSendQueuedNow}
                 onUnqueueQueuedMessage={handleUnqueueMessage}
                 sendNextId={manager.sendNextId}
+                onOpenFile={handleOpenProjectFile}
               />
               <div data-chat-composer className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
                 <BottomComposer
@@ -1618,7 +1629,7 @@ export function AppLayout() {
                 className="flex w-2 shrink-0 items-center justify-center"
                 style={isIsland ? { width: "var(--island-panel-gap)" } : undefined}
               >
-                <div className="h-10 w-0.5 rounded-full bg-foreground/18" />
+                <div className="h-10 w-0.5 rounded-full bg-foreground/36" />
               </motion.div>
               <SplitDropZone
                 active={true}

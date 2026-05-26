@@ -106,12 +106,28 @@ const SYNTAX_STYLE: React.CSSProperties = {
   borderRadius: 0,
   background: "transparent",
   textShadow: "none",
+  color: "var(--foreground)",
   fontSize: "12px",
   padding: "12px",
 };
 
+const CHAT_SYNTAX_THEME = {
+  ...oneDark,
+  'code[class*="language-"]': {
+    ...(oneDark['code[class*="language-"]'] ?? {}),
+    color: "var(--foreground)",
+    background: "transparent",
+    textShadow: "none",
+  },
+  'pre[class*="language-"]': {
+    ...(oneDark['pre[class*="language-"]'] ?? {}),
+    background: "transparent",
+    textShadow: "none",
+  },
+};
+
 /** Override oneDark's background on the inner <code> element */
-const CODE_TAG_PROPS = { style: { background: "transparent", textShadow: "none" } };
+const CODE_TAG_PROPS = { style: { background: "transparent", color: "var(--foreground)", textShadow: "none" } };
 
 /** Strip `<file path="...">...</file>` and `<folder path="...">...</folder>` context blocks from user messages */
 function stripFileContext(text: string): string {
@@ -225,8 +241,8 @@ export const MessageBubble = memo(function MessageBubble({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className={cn(
-                "rounded-2xl rounded-tr-sm bg-foreground/[0.09] px-3.5 py-2 text-sm text-foreground wrap-break-word whitespace-pre-wrap",
-                message.isQueued && "bg-foreground/[0.06]",
+                "rounded-2xl rounded-tr-sm bg-foreground/[0.14] px-3.5 py-2 text-sm text-foreground wrap-break-word whitespace-pre-wrap",
+                message.isQueued && "bg-foreground/[0.09]",
                 message.isQueued && "border border-dashed border-[color:var(--foreground)]",
               )}>
                 {message.images && message.images.length > 0 && (
@@ -261,7 +277,7 @@ export const MessageBubble = memo(function MessageBubble({
                               "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-all",
                               isSendNextQueued
                                 ? "bg-primary/15 text-primary hover:bg-primary/25"
-                                : "text-foreground/85 hover:bg-foreground/[0.08] hover:text-foreground",
+                                : "text-foreground/85 hover:bg-foreground/[0.05] hover:text-foreground",
                             )}
                             onClick={() => onSendQueuedNow(message.id)}
                           >
@@ -344,7 +360,7 @@ export const MessageBubble = memo(function MessageBubble({
             <div className={cn("flow-root wrap-break-word", CHAT_CONTENT_STACK_CLASS, assistantTurnDividerLabel ? "w-full" : "min-w-0")}>
             {assistantTurnDividerLabel ? (
               <div className="relative mb-3 w-full text-center text-[11px] text-foreground/65">
-                <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-foreground/[0.08]" />
+                <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-foreground/[0.05]" />
                 <span className="relative inline-block bg-background px-3 font-medium">
                   {assistantTurnDividerLabel}
                 </span>
@@ -428,26 +444,20 @@ function CodeBlock(props: React.HTMLAttributes<HTMLElement> & { node?: unknown }
     }
 
     return (
-      <div className="not-prose group/code relative my-2 rounded-lg bg-foreground/[0.03] overflow-hidden" style={{ contain: "content" }}>
-        <div className="flex items-center justify-between bg-foreground/[0.04] px-3 py-1">
+      <div className="not-prose group/code relative my-2 rounded-lg overflow-hidden" style={{ contain: "content" }}>
+        <div className="flex items-center justify-between px-3 py-1">
           <span className="text-[11px] text-foreground/65">{language}</span>
           <CopyButton text={code} className="opacity-0 transition-opacity group-hover/code:opacity-100" />
         </div>
-        {isStreaming ? (
-          <pre className="overflow-x-auto p-3 text-xs font-mono" style={SYNTAX_STYLE}>
-            <code>{code}</code>
-          </pre>
-        ) : (
-          <SyntaxHighlighter
-            style={oneDark}
-            language={language}
-            PreTag="div"
-            customStyle={SYNTAX_STYLE}
-            codeTagProps={CODE_TAG_PROPS}
-          >
-            {code}
-          </SyntaxHighlighter>
-        )}
+        <SyntaxHighlighter
+          style={CHAT_SYNTAX_THEME}
+          language={language}
+          PreTag="div"
+          customStyle={SYNTAX_STYLE}
+          codeTagProps={CODE_TAG_PROPS}
+        >
+          {code}
+        </SyntaxHighlighter>
       </div>
     );
   }
@@ -456,8 +466,8 @@ function CodeBlock(props: React.HTMLAttributes<HTMLElement> & { node?: unknown }
   if (isBlock) {
     const guessedLang = !isStreaming ? guessLanguage(code) : null;
     return (
-      <div className="not-prose group/code relative my-2 rounded-lg bg-foreground/[0.03] overflow-hidden" style={{ contain: "content" }}>
-        <div className="flex items-center justify-between bg-foreground/[0.04] px-3 py-1">
+      <div className="not-prose group/code relative my-2 rounded-lg overflow-hidden" style={{ contain: "content" }}>
+        <div className="flex items-center justify-between px-3 py-1">
           {guessedLang ? (
             <span className="text-[11px] text-foreground/65">{guessedLang}</span>
           ) : (
@@ -467,7 +477,7 @@ function CodeBlock(props: React.HTMLAttributes<HTMLElement> & { node?: unknown }
         </div>
         {guessedLang ? (
           <SyntaxHighlighter
-            style={oneDark}
+            style={CHAT_SYNTAX_THEME}
             language={guessedLang}
             PreTag="div"
             customStyle={SYNTAX_STYLE}
@@ -476,7 +486,7 @@ function CodeBlock(props: React.HTMLAttributes<HTMLElement> & { node?: unknown }
             {code}
           </SyntaxHighlighter>
         ) : (
-          <pre className="overflow-x-auto p-3 text-xs font-mono">
+          <pre className="overflow-x-auto p-3 text-xs font-mono text-foreground">
             <code>{code}</code>
           </pre>
         )}
@@ -486,7 +496,7 @@ function CodeBlock(props: React.HTMLAttributes<HTMLElement> & { node?: unknown }
 
   // Inline code — not-prose prevents Typography backtick pseudo-elements
   return (
-    <code className="not-prose rounded bg-foreground/[0.08] px-1.5 py-0.5 text-xs font-mono">
+    <code className="not-prose rounded px-1.5 py-0.5 text-xs font-mono text-foreground">
       {children}
     </code>
   );

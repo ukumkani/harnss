@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState, type CSSProperties } from "react";
 import { Terminal, Globe, GitBranch, FileText, FolderTree, ListTodo, Bot, Plug, SquareArrowOutUpRight, ArrowDown, ArrowRight } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -369,7 +369,11 @@ export const ToolPicker = memo(function ToolPicker({
   const pickerClassName = islandLayout
     ? `tool-picker ${transparentBackground ? "" : "island "}relative flex h-full shrink-0 flex-col items-center gap-0.5${transparentBackground ? "" : " rounded-[var(--island-radius)] bg-background"} pt-2 pb-2`
     : `tool-picker ${transparentBackground ? "" : "island "}relative flex h-full w-11 shrink-0 flex-col items-center gap-0.5${transparentBackground ? "" : " rounded-lg bg-background"} pt-2 pb-2`;
-  const pickerStyle = islandLayout ? { width: "var(--tool-picker-strip-width)" } : undefined;
+  const pickerStyle = {
+    ...(islandLayout ? { width: "var(--tool-picker-strip-width)" } : {}),
+    borderInlineStart: "2px solid var(--tool-picker-rail-border)",
+    boxShadow: "none",
+  } satisfies CSSProperties;
 
   const editorButtonSize = "h-8 w-8";
   const editorIconSize = "h-4 w-4";

@@ -36,7 +36,7 @@ export function PanelHeader({
     <>
       <div data-panel-header className={`flex items-center gap-1.5 ${className}`}>
         {iconNode ?? (Icon && <Icon className={`h-3 w-3 shrink-0 ${iconClass}`} />)}
-        <span className="text-[10px] font-semibold tracking-wider text-muted-foreground/70 uppercase">{label}</span>
+        <span className="text-[10px] font-semibold tracking-wider text-foreground uppercase">{label}</span>
         {children && <div className="ms-auto flex items-center gap-1">{children}</div>}
       </div>
       {separator && (

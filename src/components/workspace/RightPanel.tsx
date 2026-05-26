@@ -69,8 +69,8 @@ export const RightPanel = React.memo(function RightPanel({
         <div
           className={`h-10 w-0.5 rounded-full transition-colors duration-150 ${
             isResizing
-              ? "bg-foreground/40"
-              : "bg-transparent group-hover:bg-foreground/25"
+              ? "bg-foreground/80"
+              : "bg-foreground/36 group-hover:bg-foreground/50"
           }`}
         />
       </div>
@@ -102,8 +102,8 @@ export const RightPanel = React.memo(function RightPanel({
             <div
               className={`w-10 h-0.5 rounded-full transition-colors duration-150 ${
                 isResizing
-                  ? "bg-foreground/40"
-                  : "bg-transparent group-hover:bg-foreground/25"
+                  ? "bg-foreground/80"
+                  : "bg-foreground/36 group-hover:bg-foreground/50"
               }`}
             />
           </div>

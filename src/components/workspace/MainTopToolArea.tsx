@@ -135,7 +135,7 @@ export function MainTopToolArea({
         style={isIsland ? { width: "var(--island-panel-gap)" } : undefined}
         onMouseDown={onOuterResizeStart}
       >
-        <div className={`h-10 w-0.5 rounded-full transition-colors duration-150 ${isOuterResizeActive ? "bg-foreground/40" : "bg-transparent group-hover:bg-foreground/25"}`} />
+        <div className={`h-10 w-0.5 rounded-full transition-colors duration-150 ${isOuterResizeActive ? "bg-foreground/80" : "bg-foreground/36 group-hover:bg-foreground/50"}`} />
       </div>
       <div
         className="flex min-w-0 flex-1 flex-col overflow-hidden"
@@ -291,8 +291,8 @@ export function MainTopToolArea({
                               <div
                                 className={`h-0.5 w-10 rounded-full transition-colors duration-150 ${
                                   isStackPairResizing
-                                    ? "bg-foreground/40"
-                                    : "bg-transparent group-hover:bg-foreground/25"
+                                    ? "bg-foreground/80"
+                                    : "bg-foreground/36 group-hover:bg-foreground/50"
                                 }`}
                               />
                             </div>

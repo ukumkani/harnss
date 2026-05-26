@@ -50,7 +50,7 @@ function ContentResult({ content, numLines }: { content: string; numLines?: numb
   const lines = content.split("\n");
 
   return (
-    <pre className="max-h-64 overflow-auto rounded-md bg-foreground/[0.04] px-3 py-2 text-[11px] whitespace-pre-wrap wrap-break-word">
+    <pre className="max-h-64 overflow-auto rounded-md bg-foreground/[0.05] px-3 py-2 text-[11px] whitespace-pre-wrap wrap-break-word">
       {lines.map((line, i) => {
         // Separator between blocks
         if (line === "--") {
@@ -138,7 +138,7 @@ export function SearchContent({ message }: { message: UIMessage }) {
 
         {/* Count mode — just show count text if we have content */}
         {mode === "count" && content && (
-          <pre className="max-h-32 overflow-auto rounded-md bg-foreground/[0.04] px-3 py-2 text-[11px] text-foreground/50 whitespace-pre-wrap wrap-break-word">
+          <pre className="max-h-32 overflow-auto rounded-md bg-foreground/[0.05] px-3 py-2 text-[11px] text-foreground/50 whitespace-pre-wrap wrap-break-word">
             {content}
           </pre>
         )}
@@ -153,7 +153,7 @@ export function SearchContent({ message }: { message: UIMessage }) {
     <div className="space-y-1.5 text-xs">
       {header}
       {formattedResult && (
-        <pre className="max-h-48 overflow-auto rounded-md bg-foreground/[0.04] px-3 py-2 text-[11px] text-foreground/50 whitespace-pre-wrap wrap-break-word">
+        <pre className="max-h-48 overflow-auto rounded-md bg-foreground/[0.05] px-3 py-2 text-[11px] text-foreground/50 whitespace-pre-wrap wrap-break-word">
           {formattedResult}
         </pre>
       )}

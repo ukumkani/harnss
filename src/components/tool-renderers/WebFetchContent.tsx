@@ -29,7 +29,7 @@ export function WebFetchContent({ message }: { message: UIMessage }) {
         </a>
       )}
       {displayContent && (
-        <div className="max-h-64 overflow-auto rounded-md bg-foreground/[0.03] px-3 py-2">
+        <div className="max-h-64 overflow-auto rounded-md bg-foreground/[0.034] px-3 py-2">
           <div className="prose dark:prose-invert prose-sm max-w-none text-foreground/60 text-[12px]">
             <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>{displayContent}</ReactMarkdown>
           </div>

@@ -87,6 +87,7 @@ export interface SplitChatPaneProps {
   chatPaneTextVars: React.CSSProperties;
   onRevert?: (checkpointId: string) => void;
   onFullRevert?: (checkpointId: string) => void;
+  onOpenFile?: (filePath: string) => void;
   onTopScrollProgress: (progress: number) => void;
   onClosePane: () => void;
   onFocus: () => void;
@@ -160,6 +161,7 @@ function SplitChatPaneInner({
   chatPaneTextVars,
   onRevert,
   onFullRevert,
+  onOpenFile,
   onTopScrollProgress,
   onClosePane,
   onFocus,
@@ -258,6 +260,7 @@ function SplitChatPaneInner({
             sessionId={sessionId}
             onRevert={onRevert}
             onFullRevert={onFullRevert}
+            onOpenFile={onOpenFile}
             onTopScrollProgress={onTopScrollProgress}
           />
           <div data-chat-composer className="pointer-events-none absolute inset-x-0 bottom-0 z-10">

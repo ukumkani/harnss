@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   FolderTree,
   ChevronRight,
@@ -82,6 +82,8 @@ interface ProjectFilesPanelProps {
   cwd?: string;
   enabled: boolean;
   onOpenFile?: (filePath: string) => void;
+  revealFilePath?: string | null;
+  revealFileVersion?: number;
   headerControls?: React.ReactNode;
 }
 
@@ -91,6 +93,8 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
   cwd,
   enabled,
   onOpenFile,
+  revealFilePath,
+  revealFileVersion = 0,
   headerControls,
 }: ProjectFilesPanelProps) {
   const { tree, loading, error, refresh } = useProjectFiles(cwd, enabled);
@@ -102,6 +106,8 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
 
   // Inline creation state: { parentDir (relative), type }
   const [creating, setCreating] = useState<{ parentDir: string; type: "file" | "folder" } | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const rowRefs = useRef(new Map<string, HTMLDivElement>());
 
   // Debounce search input
   const handleSearchChange = useCallback((value: string) => {
@@ -130,6 +136,48 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
   }, [filteredTree, effectiveExpanded]);
 
   const totalFiles = useMemo(() => (tree ? countFiles(tree) : 0), [tree]);
+  const revealRelativePath = useMemo(() => {
+    if (!cwd || !revealFilePath) return null;
+    const normalizedCwd = cwd.replace(/\/+$/, "");
+    const normalizedPath = revealFilePath.replace(/\/+/g, "/");
+    return normalizedPath.startsWith(`${normalizedCwd}/`)
+      ? normalizedPath.slice(normalizedCwd.length + 1)
+      : null;
+  }, [cwd, revealFilePath]);
+
+  useEffect(() => {
+    if (!revealRelativePath || revealFileVersion <= 0) return;
+    const dirs: string[] = [];
+    let current = dirname(revealRelativePath);
+    while (current) {
+      dirs.push(current);
+      current = dirname(current);
+    }
+    if (dirs.length === 0) return;
+    setExpandedDirs((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const dir of dirs) {
+        if (!next.has(dir)) {
+          next.add(dir);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [revealFileVersion, revealRelativePath]);
+
+  useEffect(() => {
+    if (!revealRelativePath || revealFileVersion <= 0) return;
+    const frame = window.requestAnimationFrame(() => {
+      const row = rowRefs.current.get(revealRelativePath);
+      const viewport = scrollAreaRef.current?.querySelector<HTMLElement>("[data-slot='scroll-area-viewport']");
+      if (!row || !viewport) return;
+      const top = Math.max(0, row.offsetTop - viewport.clientHeight * 0.3);
+      viewport.scrollTo({ top, behavior: "smooth" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [flatItems, revealFileVersion, revealRelativePath]);
 
   // Toggle directory expanded state
   const toggleDir = useCallback((path: string) => {
@@ -236,7 +284,7 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
       </div>
 
       {/* Tree content */}
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0">
         {loading && !tree && (
           <div className="flex flex-col items-center justify-center gap-1 py-6">
             <RefreshCw className="h-3 w-3 animate-spin text-foreground/25" />
@@ -269,6 +317,10 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
               onToggleDir={toggleDir}
               onFileOpen={handleFileOpen}
               onRefresh={refresh}
+              onRowMount={(path, element) => {
+                if (element) rowRefs.current.set(path, element);
+                else rowRefs.current.delete(path);
+              }}
               onStartCreate={handleStartCreate}
               creatingUnder={
                 creating && creating.parentDir === item.node.path
@@ -368,6 +420,7 @@ interface FileTreeRowProps {
   onToggleDir: (path: string) => void;
   onFileOpen: (node: FileTreeNode) => void;
   onRefresh: () => void;
+  onRowMount: (path: string, element: HTMLDivElement | null) => void;
   onStartCreate: (parentDir: string, type: "file" | "folder") => void;
   creatingUnder: "file" | "folder" | null;
   onCommitCreate: (name: string) => void;
@@ -382,6 +435,7 @@ const FileTreeRow = memo(function FileTreeRow({
   onToggleDir,
   onFileOpen,
   onRefresh,
+  onRowMount,
   onStartCreate,
   creatingUnder,
   onCommitCreate,
@@ -547,7 +601,10 @@ const FileTreeRow = memo(function FileTreeRow({
   return (
     <>
       <div
-        ref={rowRef}
+        ref={(element) => {
+          rowRef.current = element;
+          onRowMount(node.path, element);
+        }}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}

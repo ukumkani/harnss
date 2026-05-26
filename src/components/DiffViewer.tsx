@@ -1,6 +1,7 @@
 import { lazy, memo, Suspense, startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { OpenInEditorButton } from "./OpenInEditorButton";
+import { OpenFileButton } from "./OpenFileButton";
 import { useResolvedTheme } from "@/hooks/useTheme";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useChatIsScrolling } from "@/components/chat-ui-state";
@@ -18,6 +19,9 @@ interface DiffViewerProps {
   unifiedDiff?: string;
   /** Fill parent height instead of capping at max-h */
   fillHeight?: boolean;
+  /** Render without its own border when embedded in another bordered container. */
+  borderless?: boolean;
+  onOpenFile?: (filePath: string) => void;
 }
 
 interface DiffDocuments {
@@ -71,6 +75,13 @@ const MONACO_DIFF_OPTIONS = {
     alwaysConsumeMouseWheel: false,
   },
   padding: { top: 0, bottom: 0 },
+} satisfies Record<string, unknown>;
+
+const BORDERLESS_MONACO_DIFF_OPTIONS = {
+  ...MONACO_DIFF_OPTIONS,
+  lineNumbers: "off",
+  lineNumbersMinChars: 0,
+  lineDecorationsWidth: 0,
 } satisfies Record<string, unknown>;
 
 const fullFileContentCache = new Map<string, string | null>();
@@ -365,6 +376,8 @@ export const DiffViewer = memo(function DiffViewer({
   filePath,
   unifiedDiff,
   fillHeight,
+  borderless,
+  onOpenFile,
 }: DiffViewerProps) {
   const isChatScrolling = useChatIsScrolling();
   const [hydrated, setHydrated] = useState(() => !isChatScrolling);
@@ -588,11 +601,15 @@ export const DiffViewer = memo(function DiffViewer({
 
   return (
     <div className={`w-full min-w-0 overflow-hidden font-mono text-[12px] leading-[1.55] bg-muted/55 dark:bg-foreground/[0.06] ${
-      fillHeight ? "flex h-full flex-col" : "rounded-lg border border-foreground/[0.06]"
+      fillHeight ? "flex h-full flex-col" : borderless ? "" : "rounded-lg border border-foreground/[0.06]"
     }`}>
       <div className="group/diff flex items-center gap-3 bg-muted/70 px-3 py-1.5 dark:bg-foreground/[0.04] shrink-0">
         <span className="flex-1 truncate text-foreground/80">{fileName}</span>
-        <OpenInEditorButton filePath={filePath} className="group-hover/diff:text-foreground/25" />
+        {onOpenFile ? (
+          <OpenFileButton filePath={filePath} onOpenFile={onOpenFile} className="group-hover/diff:text-foreground/25" />
+        ) : (
+          <OpenInEditorButton filePath={filePath} className="group-hover/diff:text-foreground/25" />
+        )}
 
         {stats && (
           <div className="flex items-center gap-1.5 text-[11px] shrink-0 tabular-nums">
@@ -646,7 +663,7 @@ export const DiffViewer = memo(function DiffViewer({
               keepCurrentOriginalModel
               keepCurrentModifiedModel
               theme={resolvedTheme === "dark" ? "vs-dark" : "light"}
-              options={MONACO_DIFF_OPTIONS}
+              options={borderless ? BORDERLESS_MONACO_DIFF_OPTIONS : MONACO_DIFF_OPTIONS}
               beforeMount={disableMonacoDiagnostics}
               onMount={handleEditorMount}
               loading={
@@ -667,5 +684,7 @@ export const DiffViewer = memo(function DiffViewer({
   && prev.newString === next.newString
   && prev.filePath === next.filePath
   && prev.unifiedDiff === next.unifiedDiff
-  && prev.fillHeight === next.fillHeight,
+  && prev.fillHeight === next.fillHeight
+  && prev.borderless === next.borderless
+  && prev.onOpenFile === next.onOpenFile,
 );

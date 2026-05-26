@@ -105,8 +105,9 @@
   --border: oklch(0.945 0.004 286.029);
   /* Flat layout separators should be subtle but opaque, so they don't
      pick up glass/window/background color through transparency. */
-  --layout-divider: color-mix(in oklch, var(--border) 36%, var(--background) 64%);
-  --layout-divider-soft: color-mix(in oklch, var(--border) 24%, var(--background) 76%);
+  --layout-divider: color-mix(in oklch, var(--border) 72%, var(--background) 28%);
+  --layout-divider-soft: color-mix(in oklch, var(--border) 48%, var(--background) 52%);
+  --tool-picker-rail-border: oklch(0.28 0.03 285 / 0.4);
   --input: oklch(0.945 0.004 286.029);
   --ring: oklch(0.705 0.015 286.029);
   --chart-1: oklch(0.646 0.222 41.116);
@@ -143,8 +144,9 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(0.519 0 0);
-  --layout-divider: color-mix(in oklch, var(--border) 34%, var(--background) 66%);
-  --layout-divider-soft: color-mix(in oklch, var(--border) 22%, var(--background) 78%);
+  --layout-divider: color-mix(in oklch, var(--border) 68%, var(--background) 32%);
+  --layout-divider-soft: color-mix(in oklch, var(--border) 44%, var(--background) 56%);
+  --tool-picker-rail-border: oklch(0.82 0.03 285 / 0.6);
   --input: oklch(0.519 0 0);
   --ring: oklch(0.641 0 0);
   --chart-1: oklch(0.488 0.243 264.376);
@@ -272,6 +274,9 @@ html.platform-darwin.glass-enabled:not(.dark) .session-item-button img {
 
 .app-sidebar {
   background-color: var(--sidebar-solid) !important;
+  box-shadow:
+    inset -1px 0 0 var(--sidebar-border),
+    4px 0 10px color-mix(in oklch, var(--sidebar-foreground) 12%, transparent);
 }
 
 html.platform-darwin.glass-enabled:not(.dark) .app-sidebar {
@@ -384,6 +389,41 @@ html:not(.dark) .glass-outline {
 .resize-col,
 .resize-row {
   position: relative;
+  --resize-handle-track: color-mix(in oklch, var(--foreground) 10%, transparent);
+  --resize-handle-line: color-mix(in oklch, var(--foreground) 64%, transparent);
+}
+
+.resize-col {
+  background:
+    linear-gradient(
+      to right,
+      transparent 0,
+      transparent calc(50% - 0.5px),
+      var(--resize-handle-line) calc(50% - 0.5px),
+      var(--resize-handle-line) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px),
+      transparent 100%
+    ),
+    var(--resize-handle-track);
+}
+
+.resize-row {
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(50% - 0.5px),
+      var(--resize-handle-line) calc(50% - 0.5px),
+      var(--resize-handle-line) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px),
+      transparent 100%
+    ),
+    var(--resize-handle-track);
+}
+
+.resize-col > *,
+.resize-row > * {
+  background-color: var(--resize-handle-line) !important;
 }
 
 .resize-col::after {
@@ -505,6 +545,17 @@ html:not(.dark) .no-island-shine .island {
 }
 .no-islands .resize-row > * {
   display: none;
+}
+
+.no-islands .resize-col,
+.no-islands .resize-col.flat-divider-soft,
+.no-islands .resize-row,
+.no-islands .resize-row.flat-divider-soft {
+  background: color-mix(in oklch, var(--foreground) 24%, var(--background) 76%) !important;
+}
+
+.no-islands .flat-divider-s {
+  border-inline-start-color: color-mix(in oklch, var(--foreground) 24%, var(--background) 76%);
 }
 
 /* Flat mode: active chat header matches the taller settings/title bar height. */
@@ -714,7 +765,7 @@ html.platform-win32 .drag-region {
 /* ── Streaming text: per-chunk tail fade-in (applied via DOM wrapper spans) ── */
 @keyframes stream-chunk-enter {
   from {
-    opacity: 0.15;
+    opacity: 1;
   }
   to {
     opacity: 1;
@@ -723,6 +774,13 @@ html.platform-win32 .drag-region {
 
 .stream-chunk-enter {
   animation: stream-chunk-enter 0.32s ease-out both;
+}
+
+.chat-composer-surface {
+  border-color: color-mix(in oklch, var(--foreground) 49%, transparent);
+  box-shadow:
+    0 8px 18px color-mix(in oklch, var(--foreground) 45%, transparent),
+    0 1px 4px color-mix(in oklch, var(--foreground) 34%, transparent);
 }
 
 .prose-sm {

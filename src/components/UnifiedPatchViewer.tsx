@@ -1,10 +1,13 @@
 import { memo, useMemo, useState } from "react";
 import { ChevronsUpDown } from "lucide-react";
 import { OpenInEditorButton } from "./OpenInEditorButton";
+import { OpenFileButton } from "./OpenFileButton";
 
 interface UnifiedPatchViewerProps {
   diffText: string;
   filePath?: string;
+  borderless?: boolean;
+  onOpenFile?: (filePath: string) => void;
 }
 
 const MAX_PATCH_LINES = 100;
@@ -28,6 +31,8 @@ function getLineClass(line: string): string {
 export const UnifiedPatchViewer = memo(function UnifiedPatchViewer({
   diffText,
   filePath,
+  borderless,
+  onOpenFile,
 }: UnifiedPatchViewerProps) {
   const lines = useMemo(() => diffText.replace(/\r\n/g, "\n").split("\n"), [diffText]);
   const fileName = filePath ? filePath.split("/").pop() : null;
@@ -38,11 +43,21 @@ export const UnifiedPatchViewer = memo(function UnifiedPatchViewer({
   const displayLines = isTruncated ? lines.slice(0, MAX_PATCH_LINES) : lines;
 
   return (
-    <div className="rounded-lg border border-border/50 overflow-hidden font-mono text-[12px] leading-[1.55] bg-muted/55 dark:bg-foreground/[0.06]">
+    <div className={`overflow-hidden font-mono text-[12px] leading-[1.55] bg-muted/55 dark:bg-foreground/[0.06] ${
+      borderless ? "" : "rounded-lg border border-border/50"
+    }`}>
       {fileName && (
-        <div className="group/diff flex items-center gap-3 px-3 py-1.5 bg-muted/70 dark:bg-foreground/[0.04] border-b border-border/40">
+        <div className={`group/diff flex items-center gap-3 px-3 py-1.5 bg-muted/70 dark:bg-foreground/[0.04] ${
+          borderless ? "" : "border-b border-border/40"
+        }`}>
           <span className="text-foreground/80 truncate flex-1">{fileName}</span>
-          {filePath ? <OpenInEditorButton filePath={filePath} className="group-hover/diff:text-foreground/25" /> : null}
+          {filePath ? (
+            onOpenFile ? (
+              <OpenFileButton filePath={filePath} onOpenFile={onOpenFile} className="group-hover/diff:text-foreground/25" />
+            ) : (
+              <OpenInEditorButton filePath={filePath} className="group-hover/diff:text-foreground/25" />
+            )
+          ) : null}
         </div>
       )}
       <div className="max-h-[28rem] overflow-auto px-3 py-2">

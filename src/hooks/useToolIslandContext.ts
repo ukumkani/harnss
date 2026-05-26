@@ -27,6 +27,8 @@ interface UseToolIslandContextInput {
   onCloseProjectFile: (path: string) => void;
   reviewTargetFiles: string[];
   reviewTargetOpenVersion: number;
+  projectFilesRevealPath: string | null;
+  projectFilesRevealVersion: number;
   collapsedRepos: Set<string>;
   onToggleRepoCollapsed: (path: string) => void;
   mcpServerStatuses: McpServerStatus[];
@@ -54,6 +56,8 @@ export function useToolIslandContext(input: UseToolIslandContextInput): ToolIsla
       onCloseProjectFile: input.onCloseProjectFile,
       reviewTargetFiles: input.reviewTargetFiles,
       reviewTargetOpenVersion: input.reviewTargetOpenVersion,
+      projectFilesRevealPath: input.projectFilesRevealPath,
+      projectFilesRevealVersion: input.projectFilesRevealVersion,
       collapsedRepos: input.collapsedRepos,
       onToggleRepoCollapsed: input.onToggleRepoCollapsed,
       mcpServerStatuses: input.mcpServerStatuses,
@@ -78,6 +82,8 @@ export function useToolIslandContext(input: UseToolIslandContextInput): ToolIsla
       input.onCloseProjectFile,
       input.reviewTargetFiles,
       input.reviewTargetOpenVersion,
+      input.projectFilesRevealPath,
+      input.projectFilesRevealVersion,
       input.collapsedRepos,
       input.onToggleRepoCollapsed,
       input.mcpServerStatuses,

@@ -13,7 +13,7 @@ export function EnterPlanModeContent({ message }: { message: UIMessage }) {
   const resultText = message.toolResult ? extractResultText(message.toolResult) : "";
 
   return (
-    <div className="rounded-md bg-foreground/[0.03] px-3 py-2 text-xs text-foreground/50">
+    <div className="rounded-md bg-foreground/[0.017] px-3 py-2 text-xs text-foreground/50">
       {resultText || "Exploring codebase and designing implementation approach."}
     </div>
   );
@@ -32,7 +32,7 @@ export function ExitPlanModeContent({ message }: { message: UIMessage }) {
     <div className="rounded-lg border border-border/50 overflow-hidden">
       {/* Header bar with plan file name */}
       {fileName && (
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-foreground/[0.04] border-b border-border/40">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-foreground/[0.025] border-b border-border/40">
           <Map className="h-3 w-3 text-foreground/40" />
           <span className="text-[11px] text-foreground/50 font-mono truncate">{fileName}</span>
         </div>

@@ -96,7 +96,7 @@ export function TabBar<T extends TabBarTab>({
       <div className={`flex items-center ps-1.5 ${hasHeaderLabel ? "gap-1.5" : "gap-0"}`}>
         <HeaderIcon className="h-3 w-3 text-foreground/45" />
         {hasHeaderLabel && (
-          <span className="text-[10px] font-semibold tracking-wider text-foreground/45 uppercase">{headerLabel}</span>
+          <span className="text-[10px] font-semibold tracking-wider text-foreground uppercase">{headerLabel}</span>
         )}
       </div>
 

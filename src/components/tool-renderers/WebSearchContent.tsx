@@ -111,7 +111,7 @@ export function WebSearchContent({ message }: { message: UIMessage }) {
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`group/link flex items-center gap-2 px-3 py-1.5 transition-colors hover:bg-foreground/[0.04] ${
+                className={`group/link flex items-center gap-2 px-3 py-1.5 transition-colors hover:bg-foreground/[0.025] ${
                   i > 0 ? "border-t border-foreground/[0.06]" : ""
                 }`}
               >
@@ -130,7 +130,7 @@ export function WebSearchContent({ message }: { message: UIMessage }) {
       )}
 
       {summary && (
-        <div className="max-h-64 overflow-auto rounded-md bg-foreground/[0.03] px-3 py-2">
+        <div className="max-h-64 overflow-auto rounded-md bg-foreground/[0.034] px-3 py-2">
           <div className="prose prose-sm max-w-none text-[12px] text-foreground/60 dark:prose-invert">
             <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>{summary.slice(0, 3000)}</ReactMarkdown>
           </div>
@@ -138,7 +138,7 @@ export function WebSearchContent({ message }: { message: UIMessage }) {
       )}
 
       {fallbackSummary && !summary && (
-        <div className="rounded-md bg-foreground/[0.03] px-3 py-2 text-[11px] text-foreground/50">
+        <div className="rounded-md bg-foreground/[0.034] px-3 py-2 text-[11px] text-foreground/50">
           {fallbackSummary}
         </div>
       )}

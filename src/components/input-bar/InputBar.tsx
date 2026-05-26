@@ -789,7 +789,7 @@ export const InputBar = memo(function InputBar({
         onChange={handleFileInputChange}
       />
       <div
-        className={`group pointer-events-auto relative rounded-2xl border border-[color:var(--foreground)] bg-background transition-all duration-200 ease-out ${
+        className={`chat-composer-surface group pointer-events-auto relative rounded-2xl border border-[color:var(--foreground)] bg-background transition-all duration-200 ease-out ${
           isDragging
             ? "ring-primary/25"
             : speech.isListening

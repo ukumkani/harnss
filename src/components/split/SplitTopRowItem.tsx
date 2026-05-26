@@ -117,6 +117,7 @@ export interface SplitTopRowItemProps {
 
   // File preview
   handlePreviewFile: (path: string, rect: DOMRect) => void;
+  handleOpenProjectFile: (path: string) => void;
   handleElementGrab: (element: GrabbedElement) => void;
 
   // Close
@@ -345,8 +346,8 @@ function renderToolColumn(
                   <div
                     className={`h-0.5 w-10 rounded-full transition-colors duration-150 ${
                       isStackPairResizing
-                        ? "bg-foreground/40"
-                        : "bg-transparent group-hover:bg-foreground/25"
+                        ? "bg-foreground/80"
+                        : "bg-foreground/36 group-hover:bg-foreground/50"
                     }`}
                   />
                 </div>
@@ -419,6 +420,7 @@ function SplitTopRowItemInner(props: SplitTopRowItemProps) {
     handleRevert, handleFullRevert,
     makePaneScrollCallback,
     handleCloseSplitPane,
+    handleOpenProjectFile,
     queuedCount,
     availableContextual, activeTodos, bgAgents,
     paneRefs,
@@ -506,6 +508,7 @@ function SplitTopRowItemInner(props: SplitTopRowItemProps) {
       onRevert: isActiveSessionPane ? handleRevert : undefined,
       onFullRevert: isActiveSessionPane ? handleFullRevert : undefined,
       onTopScrollProgress: makePaneScrollCallback(displayIndex),
+      onOpenFile: handleOpenProjectFile,
       onClosePane: () => { void handleCloseSplitPane(sessionId); },
       onFocus: () => splitView.setFocusedSession(sessionId),
       queuedCount: isActiveSessionPane ? queuedCount : 0,

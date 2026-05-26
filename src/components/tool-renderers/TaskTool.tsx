@@ -77,8 +77,8 @@ export function TaskTool({ message }: { message: UIMessage }) {
             {/* Icon with subtle pill background */}
             <div className={`flex items-center justify-center shrink-0 size-5 rounded-md ${
               isRunning
-                ? "bg-foreground/[0.08] text-foreground/50"
-                : "bg-foreground/[0.05] text-foreground/35"
+                ? "bg-foreground/[0.034] text-foreground/50"
+                : "bg-foreground/[0.034] text-foreground/35"
             }`}>
               <Bot className="h-3 w-3" />
             </div>
@@ -101,7 +101,7 @@ export function TaskTool({ message }: { message: UIMessage }) {
 
             {/* Step count badge */}
             {stepCount > 0 && (
-              <span className="shrink-0 inline-flex items-center rounded-full bg-foreground/[0.06] px-1.5 py-px text-[10px] font-medium text-foreground/40 tabular-nums">
+              <span className="shrink-0 inline-flex items-center rounded-full bg-foreground/[0.034] px-1.5 py-px text-[10px] font-medium text-foreground/40 tabular-nums">
                 {stepCount} step{stepCount !== 1 ? "s" : ""}
               </span>
             )}
@@ -109,7 +109,7 @@ export function TaskTool({ message }: { message: UIMessage }) {
 
           {/* Duration pill */}
           {message.subagentDurationMs != null && (
-            <span className="inline-flex items-center rounded-full bg-foreground/[0.04] px-1.5 py-px text-[10px] text-foreground/30 tabular-nums shrink-0">
+            <span className="inline-flex items-center rounded-full bg-foreground/[0.025] px-1.5 py-px text-[10px] text-foreground/30 tabular-nums shrink-0">
               {formatDuration(message.subagentDurationMs)}
             </span>
           )}

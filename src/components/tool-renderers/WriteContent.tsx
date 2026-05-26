@@ -126,9 +126,9 @@ export function WriteContent({ message }: { message: UIMessage }) {
   const heightPx = estimateHeight(content);
 
   return (
-    <div className="rounded-lg border border-foreground/[0.06] overflow-hidden font-mono text-[12px] leading-[1.55] bg-muted/55 dark:bg-foreground/[0.06]">
+    <div className="rounded-lg border border-foreground/[0.06] overflow-hidden font-mono text-[12px] leading-[1.55] bg-muted/[0.34] dark:bg-foreground/[0.034]">
       {/* Header */}
-      <div className="group/write flex items-center gap-3 px-3 py-1.5 bg-muted/70 dark:bg-foreground/[0.04]">
+      <div className="group/write flex items-center gap-3 px-3 py-1.5 bg-muted/[0.43] dark:bg-foreground/[0.025]">
         <span className="text-foreground/80 truncate flex-1">{filePath}</span>
         <span className="shrink-0 text-[11px] tabular-nums text-emerald-400/70">+{lineCount}</span>
         <OpenInEditorButton filePath={filePath} className="group-hover/write:text-foreground/25" />

@@ -103,8 +103,8 @@ export function MainBottomToolDock({
         <div
           className={`h-0.5 w-10 rounded-full transition-colors duration-150 ${
             isResizeActive || isBottomHeightResizing
-              ? "bg-foreground/40"
-              : "bg-transparent group-hover:bg-foreground/25"
+              ? "bg-foreground/80"
+              : "bg-foreground/36 group-hover:bg-foreground/50"
           }`}
         />
       </div>

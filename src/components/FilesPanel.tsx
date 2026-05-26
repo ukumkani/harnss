@@ -183,20 +183,19 @@ export const FilesPanel = memo(function FilesPanel({
 
   const files = useMemo(() => {
     const derivedFiles = data?.files ?? [];
-    if (manualFiles.length === 0) {
-      return derivedFiles.filter((file) => !closedPaths.has(file.path));
-    }
-
-    const derivedPaths = new Set(derivedFiles.map((file) => file.path));
+    const derivedByPath = new Map(derivedFiles.map((file) => [file.path, file]));
+    // TODO(settings): Expose a switch for showing agent-accessed files in Open Files.
+    // Keep Open Files manual-only until that setting exists.
     const manualAccesses = manualFiles
-      .filter((path) => !derivedPaths.has(path))
-      .map((path, index) => ({
-        path,
-        accessType: "read" as const,
-        lastAccessed: Date.now() - index,
-        ranges: [],
-      }));
-    return [...manualAccesses, ...derivedFiles].filter((file) => !closedPaths.has(file.path));
+      .map((path, index) => (
+        derivedByPath.get(path) ?? {
+          path,
+          accessType: "read" as const,
+          lastAccessed: Date.now() - index,
+          ranges: [],
+        }
+      ));
+    return manualAccesses.filter((file) => !closedPaths.has(file.path));
   }, [closedPaths, data?.files, manualFiles]);
 
   useEffect(() => {
@@ -207,7 +206,7 @@ export const FilesPanel = memo(function FilesPanel({
     setSelectedPath((current) => (
       current && files.some((file) => file.path === current)
         ? current
-        : files[0].path
+        : null
     ));
   }, [files]);
 

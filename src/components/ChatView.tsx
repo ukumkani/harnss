@@ -146,6 +146,7 @@ interface ChatMessageRowProps {
   onFullRevert?: (checkpointId: string) => void;
   onSendQueuedNow?: (messageId: string) => void;
   onUnqueueQueuedMessage?: (messageId: string) => void;
+  onOpenFile?: (filePath: string) => void;
 }
 
 const ChatMessageRow = memo(function ChatMessageRow({
@@ -159,6 +160,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
   onFullRevert,
   onSendQueuedNow,
   onUnqueueQueuedMessage,
+  onOpenFile,
 }: ChatMessageRowProps) {
   // ── Display preferences from Zustand store ──
   const autoExpandTools = useSettingsStore((s) => s.autoExpandTools);
@@ -179,7 +181,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
   }
 
   if (row.kind === "turn_summary") {
-    return <TurnChangesSummary summary={row.summary} />;
+    return <TurnChangesSummary summary={row.summary} onOpenFile={onOpenFile} />;
   }
 
   if (row.kind === "tool_group") {
@@ -198,7 +200,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
           disableCollapseAnimation
           animate={isNewGroup}
         />
-        {row.groupTurnSummary ? <TurnChangesSummary summary={row.groupTurnSummary} /> : null}
+        {row.groupTurnSummary ? <TurnChangesSummary summary={row.groupTurnSummary} onOpenFile={onOpenFile} /> : null}
       </Fragment>
     );
   }
@@ -231,6 +233,12 @@ const ChatMessageRow = memo(function ChatMessageRow({
 
   return (
     <div data-message-id={msg.id}>
+      {msg.role === "user" && (
+        <div
+          className="mx-4 my-[50px] h-[3px] border-y border-solid border-foreground/20"
+          aria-hidden="true"
+        />
+      )}
       <MessageBubble
         message={msg}
         showThinking={showThinking}
@@ -254,7 +262,8 @@ const ChatMessageRow = memo(function ChatMessageRow({
   prev.onRevert === next.onRevert &&
   prev.onFullRevert === next.onFullRevert &&
   prev.onSendQueuedNow === next.onSendQueuedNow &&
-  prev.onUnqueueQueuedMessage === next.onUnqueueQueuedMessage,
+  prev.onUnqueueQueuedMessage === next.onUnqueueQueuedMessage &&
+  prev.onOpenFile === next.onOpenFile,
 );
 
 // ── ChatViewProps ──
@@ -273,6 +282,7 @@ interface ChatViewProps {
   onSendQueuedNow?: (messageId: string) => void;
   onUnqueueQueuedMessage?: (messageId: string) => void;
   sendNextId?: string | null;
+  onOpenFile?: (filePath: string) => void;
   /** Current space ID — included in remount key so space switches show spinner immediately */
   spaceId?: string;
 }
@@ -358,7 +368,7 @@ export const ChatView = memo(function ChatView(props: ChatViewProps) {
 function ChatViewContent({
   messages, isProcessing, showThinking, extraBottomPadding, scrollToMessageId, onScrolledToMessage,
   sessionId, onRevert, onFullRevert, onTopScrollProgress,
-  onSendQueuedNow, onUnqueueQueuedMessage, sendNextId,
+  onSendQueuedNow, onUnqueueQueuedMessage, sendNextId, onOpenFile,
 }: ChatViewProps) {
   // ── Display preferences from Zustand store (only those used directly in ChatViewContent) ──
   const autoGroupTools = useSettingsStore((s) => s.autoGroupTools);
@@ -868,6 +878,7 @@ function ChatViewContent({
                   onFullRevert={onFullRevert}
                   onSendQueuedNow={onSendQueuedNow}
                   onUnqueueQueuedMessage={onUnqueueQueuedMessage}
+                  onOpenFile={onOpenFile}
                 />
               </div>
             ))}
