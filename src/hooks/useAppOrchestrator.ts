@@ -178,7 +178,7 @@ export function useAppOrchestrator() {
 
     if (session.engine === "acp" && session.agentId) {
       const agent = agents.find((a) => a.id === session.agentId);
-      if (agent && selectedAgent?.id !== agent.id) {
+      if (agent && selectedAgent !== agent) {
         setSelectedAgent(agent);
       }
       return;
@@ -188,7 +188,7 @@ export function useAppOrchestrator() {
       const codexAgent = (session.agentId
         ? agents.find((a) => a.id === session.agentId)
         : undefined) ?? agents.find((a) => a.engine === "codex");
-      if (codexAgent && selectedAgent?.id !== codexAgent.id) {
+      if (codexAgent && selectedAgent !== codexAgent) {
         setSelectedAgent(codexAgent);
       }
       return;
@@ -197,7 +197,7 @@ export function useAppOrchestrator() {
     if (selectedAgent !== null) {
       setSelectedAgent(null);
     }
-  }, [manager.activeSessionId, manager.isDraft, manager.sessions, agents]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [manager.activeSessionId, manager.isDraft, manager.sessions, agents, selectedAgent]);
 
   // ── Keyboard shortcuts ──
   useKeyboardShortcuts({

@@ -254,12 +254,6 @@ export const EnginePickerDropdown = memo(function EnginePickerDropdown({
         </DropdownMenuItem>
       )}
 
-      {/* ACP no config options available */}
-      {isACPAgent && !acpConfigOptionsLoading && !showACPConfigOptions && (
-        <DropdownMenuItem disabled className="text-xs text-foreground/65">
-          Could not load options for this agent
-        </DropdownMenuItem>
-      )}
     </>
   );
 

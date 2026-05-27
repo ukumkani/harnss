@@ -246,8 +246,11 @@ export const InputBar = memo(function InputBar({
   // ── Derived engine state ──
   const isACPAgent = selectedAgent != null && selectedAgent.engine === "acp";
   const isCodexAgent = selectedAgent != null && selectedAgent.engine === "codex";
+  const currentACPAgent = isACPAgent
+    ? agents?.find((agent) => agent.id === (lockedAgentId ?? selectedAgent.id)) ?? selectedAgent
+    : null;
   const effectiveACPConfigOptions = isACPAgent && (acpConfigOptions?.length ?? 0) === 0
-    ? selectedAgent.cachedConfigOptions
+    ? currentACPAgent?.cachedConfigOptions
     : acpConfigOptions;
   const showACPConfigOptions = isACPAgent && (effectiveACPConfigOptions?.length ?? 0) > 0;
   const isAwaitingAcpOptions = isACPAgent && !!acpConfigOptionsLoading;

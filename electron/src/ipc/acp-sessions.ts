@@ -7,7 +7,7 @@ import crypto from "crypto";
 import path from "path";
 import { log } from "../lib/logger";
 import { safeSend } from "../lib/safe-send";
-import { getAgent } from "../lib/agent-registry";
+import { getAgent, updateCachedConfig } from "../lib/agent-registry";
 import type { InstalledAgent } from "../lib/agent-registry";
 import { getMcpAuthHeaders } from "../lib/mcp-oauth-flow";
 import { extractErrorMessage, reportError } from "../lib/error-utils";
@@ -99,6 +99,7 @@ interface ACPSessionEntry {
   acpSessionId?: string;
   internalId: string;
   analyticsProperties: AcpAnalyticsProperties;
+  agentId: string;
   eventCounter: number;
   pendingPermissions: Map<string, { resolve: (response: RequestPermissionResponse) => void }>;
   cwd: string;
@@ -284,6 +285,11 @@ function resolveConfigOptions(
   return configOptions;
 }
 
+function cacheAgentConfigOptions(agentId: string, configOptions: unknown[]): void {
+  if (configOptions.length === 0) return;
+  updateCachedConfig(agentId, configOptions as ACPAuthenticateResult["configOptions"]);
+}
+
 interface AcpConnectionResult {
   proc: ChildProcess;
   connection: ClientSideConnection;
@@ -325,10 +331,12 @@ async function finalizePendingAcpSession(
   sessionResult: { sessionId: string; configOptions?: unknown[] | null; models?: unknown },
   sourceServers: McpServerInput[],
   logLabel: string,
+  agentId?: string,
 ): Promise<ACPAuthenticateResult> {
   entry.acpSessionId = sessionResult.sessionId;
   entry.pendingStartRequest = undefined;
   const configOptions = resolveConfigOptions(sessionResult, entry.internalId, logLabel);
+  if (agentId) cacheAgentConfigOptions(agentId, configOptions);
   return {
     ok: true,
     sessionId: entry.internalId,
@@ -561,6 +569,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
         connection,
         internalId,
         analyticsProperties,
+        agentId: options.agentId,
         eventCounter: 0,
         pendingPermissions,
         cwd: options.cwd,
@@ -588,7 +597,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
 
       void captureEvent("session_created", { engine: "acp", ...analyticsProperties });
 
-      return await finalizePendingAcpSession(entry, sessionResult, options.mcpServers ?? [], "ACP_SPAWN");
+      return await finalizePendingAcpSession(entry, sessionResult, options.mcpServers ?? [], "ACP_SPAWN", options.agentId);
     } catch (err) {
       const authMethods = connResult?.authMethods ?? [];
       const authRequiredMethods = extractAuthRequired(err, authMethods);
@@ -654,6 +663,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
         sessionResult,
         session.pendingStartRequest.sourceServers,
         "ACP_AUTH",
+        session.agentId,
       );
 
       return finalized;
@@ -708,22 +718,23 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
 
       if (supportsLoadSession && options.agentSessionId) {
         // Restore full context — suppress history replay from reaching the renderer
-        const entry: ACPSessionEntry = { process: proc, connection, acpSessionId: options.agentSessionId, internalId, analyticsProperties, eventCounter: 0, pendingPermissions, cwd: options.cwd, supportsLoadSession, agentName: agentDef.name, authMethods, isReloading: true };
+        const entry: ACPSessionEntry = { process: proc, connection, acpSessionId: options.agentSessionId, internalId, analyticsProperties, agentId: options.agentId, eventCounter: 0, pendingPermissions, cwd: options.cwd, supportsLoadSession, agentName: agentDef.name, authMethods, isReloading: true };
         acpSessions.set(internalId, entry);
         const loadResult = await withTimeout(connection.loadSession({ sessionId: options.agentSessionId, cwd: options.cwd, mcpServers: acpMcpServers }), ACP_START_TIMEOUT_MS, `${agentDef.name} ACP session/load`);
         entry.isReloading = false;
         acpSessionId = options.agentSessionId;
         usedLoad = true;
-        configOptions = (loadResult.configOptions ?? configBuffer.get(internalId) ?? []) as unknown[];
-        if (configOptions.length) configBuffer.set(internalId, configOptions);
+        configOptions = resolveConfigOptions(loadResult, internalId, "ACP_REVIVE");
+        cacheAgentConfigOptions(options.agentId, configOptions);
         log("ACP_REVIVE", `loadSession OK, session=${acpSessionId.slice(0, 12)} configOptions=${configOptions.length}`);
       } else {
         // Fall back to fresh session — UI messages already restored from disk
         const sessionResult = await withTimeout(connection.newSession({ cwd: options.cwd, mcpServers: acpMcpServers }), ACP_START_TIMEOUT_MS, `${agentDef.name} ACP session/new`);
         acpSessionId = sessionResult.sessionId;
-        const entry: ACPSessionEntry = { process: proc, connection, acpSessionId, internalId, analyticsProperties, eventCounter: 0, pendingPermissions, cwd: options.cwd, supportsLoadSession, agentName: agentDef.name, authMethods, isReloading: false };
+        const entry: ACPSessionEntry = { process: proc, connection, acpSessionId, internalId, analyticsProperties, agentId: options.agentId, eventCounter: 0, pendingPermissions, cwd: options.cwd, supportsLoadSession, agentName: agentDef.name, authMethods, isReloading: false };
         acpSessions.set(internalId, entry);
         configOptions = resolveConfigOptions(sessionResult, internalId, "ACP_REVIVE");
+        cacheAgentConfigOptions(options.agentId, configOptions);
         log("ACP_REVIVE", `newSession fallback, session=${acpSessionId.slice(0, 12)}`);
       }
 

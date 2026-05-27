@@ -847,7 +847,6 @@ export const UI_TEXT_ZH_CN: Record<string, string> = {
   "Click to compact context": "点击压缩上下文",
   "Comments": "评论",
   "Content preview": "内容预览",
-  "Could not load options for this agent": "无法加载此 Agent 的选项",
   "Credits": "鸣谢",
   "Current": "当前",
   "Cursor may require running": "Cursor 可能需要先启动",
