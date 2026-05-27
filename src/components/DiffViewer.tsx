@@ -5,6 +5,7 @@ import { OpenFileButton } from "./OpenFileButton";
 import { useResolvedTheme } from "@/hooks/useTheme";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useChatIsScrolling } from "@/components/chat-ui-state";
+import { CODE_BLOCK_HEADER_CLASS, CODE_BLOCK_SURFACE_CLASS } from "@/components/lib/code-block-style";
 import { getMonacoLanguageFromPath, disableMonacoDiagnostics } from "@/lib/monaco";
 import { parseUnifiedDiffFromUnknown } from "@/lib/diff/unified-diff";
 
@@ -600,10 +601,10 @@ export const DiffViewer = memo(function DiffViewer({
   }, [documents.modified]);
 
   return (
-    <div className={`w-full min-w-0 overflow-hidden font-mono text-[12px] leading-[1.55] bg-muted/55 dark:bg-foreground/[0.06] ${
+    <div className={`w-full min-w-0 overflow-hidden font-mono text-[12px] leading-[1.55] ${CODE_BLOCK_SURFACE_CLASS} ${
       fillHeight ? "flex h-full flex-col" : borderless ? "" : "rounded-lg border border-foreground/[0.06]"
     }`}>
-      <div className="group/diff flex items-center gap-3 bg-muted/70 px-3 py-1.5 dark:bg-foreground/[0.04] shrink-0">
+      <div className={`group/diff flex items-center gap-3 px-3 py-1.5 shrink-0 ${CODE_BLOCK_HEADER_CLASS}`}>
         <span className="flex-1 truncate text-foreground/80">{fileName}</span>
         {onOpenFile ? (
           <OpenFileButton filePath={filePath} onOpenFile={onOpenFile} className="group-hover/diff:text-foreground/25" />

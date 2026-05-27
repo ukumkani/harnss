@@ -3,7 +3,6 @@ import { AlertCircle, Check, Clock, Crosshair, File, Folder, Info, Pencil, Rotat
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
@@ -15,10 +14,18 @@ import { cn } from "@/lib/utils";
 import { guessLanguage } from "@/lib/languages";
 import { useStreamingTextReveal } from "@/hooks/useStreamingTextReveal";
 import type { UIMessage, ImageAttachment } from "@/types";
+import { useResolvedTheme } from "@/hooks/useTheme";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { CopyButton } from "./CopyButton";
 import { ImageLightbox } from "./ImageLightbox";
 import { MermaidDiagram } from "./MermaidDiagram";
+import {
+  CODE_BLOCK_CODE_TAG_STYLE,
+  CODE_BLOCK_HEADER_CLASS,
+  CODE_BLOCK_PRE_STYLE,
+  CODE_BLOCK_SURFACE_CLASS,
+  getCodeSyntaxTheme,
+} from "@/components/lib/code-block-style";
 import {
   CHAT_CONTENT_STACK_CLASS,
   CHAT_PROSE_EDGE_CLASS,
@@ -102,32 +109,12 @@ const MD_COMPONENTS: Components = {
   },
 };
 const SYNTAX_STYLE: React.CSSProperties = {
-  margin: 0,
+  ...CODE_BLOCK_PRE_STYLE,
   borderRadius: 0,
-  background: "transparent",
-  textShadow: "none",
-  color: "var(--foreground)",
-  fontSize: "12px",
-  padding: "12px",
 };
 
-const CHAT_SYNTAX_THEME = {
-  ...oneDark,
-  'code[class*="language-"]': {
-    ...(oneDark['code[class*="language-"]'] ?? {}),
-    color: "var(--foreground)",
-    background: "transparent",
-    textShadow: "none",
-  },
-  'pre[class*="language-"]': {
-    ...(oneDark['pre[class*="language-"]'] ?? {}),
-    background: "transparent",
-    textShadow: "none",
-  },
-};
-
-/** Override oneDark's background on the inner <code> element */
-const CODE_TAG_PROPS = { style: { background: "transparent", color: "var(--foreground)", textShadow: "none" } };
+/** Override Prism theme backgrounds on the inner <code> element. */
+const CODE_TAG_PROPS = { style: CODE_BLOCK_CODE_TAG_STYLE };
 
 /** Strip `<file path="...">...</file>` and `<folder path="...">...</folder>` context blocks from user messages */
 function stripFileContext(text: string): string {
@@ -517,6 +504,8 @@ function CodeBlock(props: React.HTMLAttributes<HTMLElement> & { node?: unknown }
   const { className, children } = props;
   const isBlock = useContext(IsBlockCodeContext);
   const isStreaming = useContext(IsStreamingMarkdownContext);
+  const resolvedTheme = useResolvedTheme();
+  const syntaxStyle = getCodeSyntaxTheme(resolvedTheme);
   const match = /language-(\w+)/.exec(String(className ?? ""));
   const code = String(children).replace(/\n$/, "");
 
@@ -530,13 +519,13 @@ function CodeBlock(props: React.HTMLAttributes<HTMLElement> & { node?: unknown }
     }
 
     return (
-      <div className="not-prose group/code relative my-2 rounded-lg overflow-hidden" style={{ contain: "content" }}>
-        <div className="flex items-center justify-between px-3 py-1">
+      <div className={`not-prose group/code relative my-2 overflow-hidden rounded-md ${CODE_BLOCK_SURFACE_CLASS}`} style={{ contain: "content" }}>
+        <div className={`flex items-center justify-between px-3 py-1 ${CODE_BLOCK_HEADER_CLASS}`}>
           <span className="text-[11px] text-foreground/65">{language}</span>
           <CopyButton text={code} className="opacity-0 transition-opacity group-hover/code:opacity-100" />
         </div>
         <SyntaxHighlighter
-          style={CHAT_SYNTAX_THEME}
+          style={syntaxStyle}
           language={language}
           PreTag="div"
           customStyle={SYNTAX_STYLE}
@@ -552,8 +541,8 @@ function CodeBlock(props: React.HTMLAttributes<HTMLElement> & { node?: unknown }
   if (isBlock) {
     const guessedLang = !isStreaming ? guessLanguage(code) : null;
     return (
-      <div className="not-prose group/code relative my-2 rounded-lg overflow-hidden" style={{ contain: "content" }}>
-        <div className="flex items-center justify-between px-3 py-1">
+      <div className={`not-prose group/code relative my-2 overflow-hidden rounded-md ${CODE_BLOCK_SURFACE_CLASS}`} style={{ contain: "content" }}>
+        <div className={`flex items-center justify-between px-3 py-1 ${CODE_BLOCK_HEADER_CLASS}`}>
           {guessedLang ? (
             <span className="text-[11px] text-foreground/65">{guessedLang}</span>
           ) : (
@@ -563,7 +552,7 @@ function CodeBlock(props: React.HTMLAttributes<HTMLElement> & { node?: unknown }
         </div>
         {guessedLang ? (
           <SyntaxHighlighter
-            style={CHAT_SYNTAX_THEME}
+            style={syntaxStyle}
             language={guessedLang}
             PreTag="div"
             customStyle={SYNTAX_STYLE}

@@ -2,6 +2,7 @@ import { memo, useMemo, useState } from "react";
 import { ChevronsUpDown } from "lucide-react";
 import { OpenInEditorButton } from "./OpenInEditorButton";
 import { OpenFileButton } from "./OpenFileButton";
+import { CODE_BLOCK_HEADER_CLASS, CODE_BLOCK_SURFACE_CLASS } from "@/components/lib/code-block-style";
 
 interface UnifiedPatchViewerProps {
   diffText: string;
@@ -43,11 +44,11 @@ export const UnifiedPatchViewer = memo(function UnifiedPatchViewer({
   const displayLines = isTruncated ? lines.slice(0, MAX_PATCH_LINES) : lines;
 
   return (
-    <div className={`overflow-hidden font-mono text-[12px] leading-[1.55] bg-muted/55 dark:bg-foreground/[0.06] ${
+    <div className={`overflow-hidden font-mono text-[12px] leading-[1.55] ${CODE_BLOCK_SURFACE_CLASS} ${
       borderless ? "" : "rounded-lg border border-border/50"
     }`}>
       {fileName && (
-        <div className={`group/diff flex items-center gap-3 px-3 py-1.5 bg-muted/70 dark:bg-foreground/[0.04] ${
+        <div className={`group/diff flex items-center gap-3 px-3 py-1.5 ${CODE_BLOCK_HEADER_CLASS} ${
           borderless ? "" : "border-b border-border/40"
         }`}>
           <span className="text-foreground/80 truncate flex-1">{fileName}</span>
