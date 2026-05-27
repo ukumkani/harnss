@@ -246,7 +246,10 @@ export const InputBar = memo(function InputBar({
   // ── Derived engine state ──
   const isACPAgent = selectedAgent != null && selectedAgent.engine === "acp";
   const isCodexAgent = selectedAgent != null && selectedAgent.engine === "codex";
-  const showACPConfigOptions = isACPAgent && (acpConfigOptions?.length ?? 0) > 0;
+  const effectiveACPConfigOptions = isACPAgent && (acpConfigOptions?.length ?? 0) === 0
+    ? selectedAgent.cachedConfigOptions
+    : acpConfigOptions;
+  const showACPConfigOptions = isACPAgent && (effectiveACPConfigOptions?.length ?? 0) > 0;
   const isAwaitingAcpOptions = isACPAgent && !!acpConfigOptionsLoading;
 
   const availableSlashCommands = useMemo(
@@ -987,7 +990,7 @@ export const InputBar = memo(function InputBar({
               codexActiveEffort={codexActiveEffort ?? "medium"}
               onCodexEffortChange={onCodexEffortChange}
               showACPConfigOptions={showACPConfigOptions}
-              acpConfigOptions={acpConfigOptions}
+              acpConfigOptions={effectiveACPConfigOptions}
               acpConfigOptionsLoading={acpConfigOptionsLoading}
               onACPConfigChange={onACPConfigChange}
               lockedEngine={lockedEngine}

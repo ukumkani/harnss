@@ -54,7 +54,14 @@ export function loadUserAgents(): void {
   try {
     const data = JSON.parse(fs.readFileSync(getConfigPath(), "utf-8"));
     for (const agent of data) {
-      if (!BUILTIN_IDS.has(agent.id)) agents.set(agent.id, agent);
+      if (BUILTIN_IDS.has(agent.id)) {
+        const builtIn = agents.get(agent.id);
+        if (builtIn && Array.isArray(agent.cachedConfigOptions)) {
+          builtIn.cachedConfigOptions = agent.cachedConfigOptions;
+        }
+      } else {
+        agents.set(agent.id, agent);
+      }
     }
   } catch {
     /* no config yet */
@@ -86,13 +93,15 @@ export function deleteAgent(id: string): void {
 /** Update only the cached config options for an agent (fire-and-forget from renderer) */
 export function updateCachedConfig(id: string, configOptions: ACPConfigOption[]): void {
   const agent = agents.get(id);
-  if (!agent || agent.builtIn) return;
+  if (!agent) return;
   agent.cachedConfigOptions = configOptions;
   persistUserAgents();
 }
 
 function persistUserAgents(): void {
-  const userAgents = listAgents().filter((a) => !a.builtIn);
+  const userAgents = listAgents().filter((agent) => (
+    !agent.builtIn || (agent.cachedConfigOptions?.length ?? 0) > 0
+  ));
   const dir = path.dirname(getConfigPath());
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(getConfigPath(), JSON.stringify(userAgents, null, 2));
