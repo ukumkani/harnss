@@ -39,6 +39,7 @@ import { suppressNextSessionCompletion } from "../lib/notification-utils";
 import { advancePermissionQueue, enqueuePermissionRequest } from "../lib/engine/permission-queue";
 import { normalizeTodoToolInput } from "../lib/chat/todo-utils";
 import { capture } from "../lib/analytics/analytics";
+import { appendGitStashResult } from "@/lib/session/git-stash-after-turn";
 import { useEngineBase } from "./useEngineBase";
 
 function uiLog(label: string, data: unknown) {
@@ -741,6 +742,9 @@ export function useClaude({ sessionId, initialMessages, initialMeta, initialPerm
           });
 
           resetStreaming();
+          void appendGitStashResult(sessionInfo?.cwd, messagesRef.current, (message) => {
+            setMessages((prev) => [...prev, message]);
+          });
           break;
         }
 
@@ -766,30 +770,28 @@ export function useClaude({ sessionId, initialMessages, initialMeta, initialPerm
         }
       }
     },
-    [resetStreaming, scheduleFlush, flushNow, handleSubagentEvent],
+    [resetStreaming, scheduleFlush, flushNow, handleSubagentEvent, sessionInfo?.cwd, messagesRef],
   );
 
   const send = useCallback(
     async (text: string, images?: ImageAttachment[], displayText?: string): Promise<boolean> => {
       if (!sessionIdRef.current) return false;
+      const userMessage = createUserMessage(text, images, displayText);
+      setIsProcessing(true);
+      setMessages((prev) => [
+        ...prev,
+        userMessage,
+      ]);
       const content = buildSdkContent(text, images);
       const result = await window.claude.send(sessionIdRef.current, {
         type: "user",
         message: { role: "user", content },
       });
       if (result?.error) {
+        setIsProcessing(false);
+        setMessages((prev) => prev.filter((message) => message.id !== userMessage.id));
         return false;
       }
-      // Both updates in the same synchronous scope so React batches them into
-      // one render.  Previously setIsProcessing(true) fired before the await,
-      // creating an intermediate render where isProcessing=true but the user
-      // message wasn't in the array yet — which made extractTurnSummaries drop
-      // the last completed turn's inline change summary.
-      setIsProcessing(true);
-      setMessages((prev) => [
-        ...prev,
-        createUserMessage(text, images, displayText),
-      ]);
       return true;
     },
     [],

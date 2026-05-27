@@ -29,7 +29,7 @@ export function ProjectStep({
       </motion.div>
 
       <motion.h2
-        className="text-5xl italic"
+        className="text-5xl"
         style={{
           fontFamily: "'Instrument Serif', Georgia, serif",
           color: "oklch(0.68 0.18 70)",

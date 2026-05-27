@@ -1,19 +1,23 @@
 import type { UIMessage } from "@/types";
 import { formatInput, formatResult, isCompletionSentinel } from "@/components/lib/tool-formatting";
+import { guessLanguage } from "@/lib/languages";
+import { ToolCodeBlock } from "./ToolCodeBlock";
+
+function pickLanguage(text: string): string {
+  return guessLanguage(text) ?? (text.trim().startsWith("{") || text.trim().startsWith("[") ? "json" : "text");
+}
 
 export function GenericContent({ message }: { message: UIMessage }) {
   const hasResult = message.toolResult && !isCompletionSentinel(message.toolResult);
+  const inputText = message.toolInput ? formatInput(message.toolInput) : "";
+  const resultText = hasResult ? formatResult(message.toolResult!) : "";
   return (
     <div className="space-y-1.5 text-xs">
       {message.toolInput && (
-        <pre className="max-h-32 overflow-auto rounded-md bg-foreground/[0.05] px-3 py-2 text-[11px] text-foreground/50 whitespace-pre-wrap wrap-break-word">
-          {formatInput(message.toolInput)}
-        </pre>
+        <ToolCodeBlock code={inputText} language={pickLanguage(inputText)} maxHeightClassName="max-h-32" />
       )}
       {hasResult && (
-        <pre className="max-h-48 overflow-auto rounded-md bg-foreground/[0.05] px-3 py-2 text-[11px] text-foreground/50 whitespace-pre-wrap wrap-break-word">
-          {formatResult(message.toolResult!)}
-        </pre>
+        <ToolCodeBlock code={resultText} language={pickLanguage(resultText)} maxHeightClassName="max-h-48" />
       )}
     </div>
   );

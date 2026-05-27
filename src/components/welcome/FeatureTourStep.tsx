@@ -35,7 +35,7 @@ export function FeatureTourStep(_props: WizardStepProps) {
           transition={{ duration: 0.4 }}
         >
           <h2
-            className="text-5xl italic"
+            className="text-5xl"
             style={{
               fontFamily: DISPLAY_FONT,
               color: "oklch(0.60 0.22 300)",

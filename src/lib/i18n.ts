@@ -259,6 +259,7 @@ export const UI_TEXT_ZH_CN: Record<string, string> = {
   "Permission mode": "权限模式",
   "Plan mode": "计划模式",
   "Thinking": "思考",
+  "Thinking...": "正在思考中...",
   "Ask": "询问",
   "Accept": "接受",
   "Reject": "拒绝",

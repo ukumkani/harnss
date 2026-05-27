@@ -173,7 +173,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
         <div className="flex items-center gap-1.5 text-xs">
           <Minus className="h-3 w-3 text-foreground/65" />
           <TextShimmer as="span" className="italic opacity-60" duration={1.8} spread={1.5}>
-            Planning next moves
+            Thinking...
           </TextShimmer>
         </div>
       </div>
@@ -306,13 +306,13 @@ export const ChatView = memo(function ChatView(props: ChatViewProps) {
         >
           <div className="flex flex-col items-center gap-3">
             <h2
-              className="text-3xl italic text-foreground/85"
+              className="text-3xl text-foreground/85"
               style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}
             >
               Send a message to start
             </h2>
             <p
-              className="text-sm italic text-foreground/30"
+              className="text-sm text-foreground/30"
               style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}
             >
               Your conversation will appear here
@@ -540,24 +540,20 @@ function ChatViewContent({
     for (const key of finalizedGroupKeys) known.add(key);
   }, [finalizedGroupKeys]);
 
-  // ── Processing indicator (O(n) scan, cached when streaming) ──
-  const cachedProcessingRef = useRef<{ processing: boolean; value: boolean }>({ processing: false, value: false });
+  // ── Processing indicator ──
   const showProcessingIndicator = useMemo(() => {
-    if (!isProcessing) {
-      cachedProcessingRef.current = { processing: false, value: false };
-      return false;
-    }
-    // Once hidden during this processing turn, stay hidden
-    if (cachedProcessingRef.current.processing && !cachedProcessingRef.current.value) {
-      return false;
-    }
-    const result = !nonQueuedMessages.some((m) =>
-      (m.role === "assistant" && m.isStreaming && (m.content || m.thinking)) ||
+    if (!isProcessing) return false;
+
+    const lastUserIndex = nonQueuedMessages.findLastIndex((m) => m.role === "user");
+    const currentTurnMessages = lastUserIndex >= 0
+      ? nonQueuedMessages.slice(lastUserIndex + 1)
+      : nonQueuedMessages;
+
+    return !currentTurnMessages.some((m) =>
+      (m.role === "assistant" && m.isStreaming && (m.content || (showThinking && m.thinking))) ||
       (m.role === "tool_call" && !m.toolResult),
     );
-    cachedProcessingRef.current = { processing: true, value: result };
-    return result;
-  }, [isProcessing, nonQueuedMessages]);
+  }, [isProcessing, nonQueuedMessages, showThinking]);
 
   const rows = useMemo(() => {
     const builtRows = buildRows(

@@ -17,6 +17,7 @@ import { ACPStreamingBuffer, normalizeToolInput, normalizeToolResult, deriveTool
 import { extractTaskSubagentSteps, getTaskStatus, isTaskToolName } from "@/lib/engine/acp-task-adapter";
 import { suppressNextSessionCompletion } from "@/lib/notification-utils";
 import { captureException } from "@/lib/analytics/analytics";
+import { appendGitStashResult } from "@/lib/session/git-stash-after-turn";
 import { createSystemMessage, createUserMessage, nextId } from "@/lib/message-factory";
 import { useEngineBase } from "./useEngineBase";
 
@@ -49,7 +50,7 @@ export function useACP({ sessionId, initialMessages, initialConfigOptions, initi
     totalCost, setTotalCost,
     pendingPermission, setPendingPermission,
     contextUsage, setContextUsage,
-    sessionIdRef,
+    sessionIdRef, messagesRef,
     scheduleFlush: scheduleRaf,
     cancelPendingFlush,
   } = base;
@@ -478,6 +479,9 @@ export function useACP({ sessionId, initialMessages, initialConfigOptions, initi
       finalizeStreamingMessage();
       closePendingTools();
       setIsProcessing(false);
+      void appendGitStashResult(sessionInfo?.cwd, messagesRef.current, (message) => {
+        setMessages((prev) => [...prev, message]);
+      });
     });
 
     const unsubExit = window.claude.acp.onExit((data: { _sessionId: string; code: number | null; error?: string }) => {
@@ -499,7 +503,7 @@ export function useACP({ sessionId, initialMessages, initialConfigOptions, initi
       unsubEvent(); unsubPermission(); unsubTurnComplete(); unsubExit();
       cancelPendingFlush();
     };
-  }, [closePendingTools, finalizeStreamingMessage, handleSessionUpdate, initialConfigOptions, sessionId]);
+  }, [closePendingTools, finalizeStreamingMessage, handleSessionUpdate, initialConfigOptions, messagesRef, sessionId, sessionInfo?.cwd]);
 
   const send = useCallback(async (text: string, images?: ImageAttachment[], displayText?: string) => {
     if (!sessionId) return;

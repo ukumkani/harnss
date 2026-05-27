@@ -4,17 +4,29 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import type { UIMessage } from "@/types";
-import { INLINE_HIGHLIGHT_STYLE, INLINE_CODE_TAG_STYLE } from "@/lib/languages";
+import { getLanguageFromPath, guessLanguage, INLINE_HIGHLIGHT_STYLE, INLINE_CODE_TAG_STYLE } from "@/lib/languages";
 import { useResolvedTheme } from "@/hooks/useTheme";
 import { formatBashResult } from "@/components/lib/tool-formatting";
 import { useChatPersistedState } from "@/components/chat-ui-state";
-import { renderAnsi } from "@/lib/ansi";
+import { renderAnsi, stripAnsi } from "@/lib/ansi";
+import { ToolCodeBlock } from "./ToolCodeBlock";
 
 const MAX_OUTPUT_LINES = 200;
 const COMMAND_CODE_TAG_STYLE = {
   ...INLINE_CODE_TAG_STYLE,
   color: "var(--foreground)",
 };
+
+function inferOutputLanguage(command: unknown, output: string): string | null {
+  const cleanOutput = stripAnsi(output);
+  const commandText = typeof command === "string" ? command : "";
+  const fileMatch = commandText.match(/\b(?:cat|sed|awk|nl|head|tail|less|more)\b[\s\S]*?([./~\w-][^\s|;&<>]*\.[A-Za-z0-9]+)\b/);
+  if (fileMatch) {
+    const language = getLanguageFromPath(fileMatch[1]);
+    if (language !== "text") return language;
+  }
+  return guessLanguage(cleanOutput);
+}
 
 export function BashContent({ message }: { message: UIMessage }) {
   const command = message.toolInput?.command;
@@ -25,7 +37,6 @@ export function BashContent({ message }: { message: UIMessage }) {
 
   const formattedResult = useMemo(() => (result ? formatBashResult(result) : ""), [result]);
   const hasOutput = !!formattedResult && formattedResult !== "(no output)";
-
   const { displayText, totalLines, isTruncated } = useMemo(() => {
     if (!formattedResult) return { displayText: "", totalLines: 0, isTruncated: false };
     const lines = formattedResult.split("\n");
@@ -39,6 +50,11 @@ export function BashContent({ message }: { message: UIMessage }) {
       isTruncated: true,
     };
   }, [formattedResult, expanded]);
+  const outputLanguage = useMemo(
+    () => (hasOutput ? inferOutputLanguage(command, displayText) : null),
+    [command, displayText, hasOutput],
+  );
+  const cleanDisplayText = useMemo(() => stripAnsi(displayText), [displayText]);
 
   return (
     <div className="text-xs">
@@ -64,9 +80,13 @@ export function BashContent({ message }: { message: UIMessage }) {
         {hasOutput && (
           <>
             <div className="mx-3 h-px bg-foreground/[0.05]" />
-            <div className="max-h-48 overflow-auto px-3 py-2 text-foreground">
-              {renderAnsi(displayText)}
-            </div>
+            {outputLanguage ? (
+              <ToolCodeBlock code={cleanDisplayText} language={outputLanguage} />
+            ) : (
+              <div className="max-h-48 overflow-auto px-3 py-2 text-foreground">
+                {renderAnsi(displayText)}
+              </div>
+            )}
           </>
         )}
       </div>

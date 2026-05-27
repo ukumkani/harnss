@@ -28,7 +28,7 @@ export function ReadyStep({
   return (
     <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-8">
       <motion.h2
-        className="text-center text-7xl italic"
+        className="text-center text-7xl"
         style={{
           fontFamily: "'Instrument Serif', Georgia, serif",
           color: "oklch(0.62 0.18 185)",

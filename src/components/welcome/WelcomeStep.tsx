@@ -17,7 +17,7 @@ export function WelcomeStep({ onNext }: WizardStepProps) {
       </motion.p>
 
       <motion.h1
-        className="text-center italic"
+        className="text-center"
         style={{
           fontFamily: DISPLAY_FONT,
           fontSize: "clamp(64px, 10vw, 96px)",

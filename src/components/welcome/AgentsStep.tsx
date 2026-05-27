@@ -19,7 +19,7 @@ export function AgentsStep({
         transition={{ duration: 0.4 }}
       >
         <h2
-          className="text-5xl italic"
+          className="text-5xl"
           style={{
             fontFamily: DISPLAY_FONT,
             color: "oklch(0.58 0.20 270)",

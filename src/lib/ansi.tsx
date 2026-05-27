@@ -165,3 +165,8 @@ export function renderAnsi(text: string): ReactNode {
 
   return parts.length === 1 ? parts[0] : <>{parts}</>;
 }
+
+export function stripAnsi(text: string): string {
+  if (!text.includes("\x1b")) return text;
+  return text.replace(ANSI_OTHER_RE, "").replace(ANSI_RE, "");
+}

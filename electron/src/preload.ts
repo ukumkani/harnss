@@ -191,6 +191,7 @@ contextBridge.exposeInMainWorld("claude", {
     unstageAll: (cwd: string) => ipcRenderer.invoke("git:unstage-all", cwd),
     discard: (cwd: string, files: string[]) => ipcRenderer.invoke("git:discard", { cwd, files }),
     commit: (cwd: string, message: string) => ipcRenderer.invoke("git:commit", { cwd, message }),
+    stashPush: (cwd: string, message: string) => ipcRenderer.invoke("git:stash-push", { cwd, message }),
     branches: (cwd: string) => ipcRenderer.invoke("git:branches", cwd),
     checkout: (cwd: string, branch: string) => ipcRenderer.invoke("git:checkout", { cwd, branch }),
     createBranch: (cwd: string, name: string) => ipcRenderer.invoke("git:create-branch", { cwd, name }),

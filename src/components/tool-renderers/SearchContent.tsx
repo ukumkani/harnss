@@ -1,6 +1,8 @@
 import { FileText } from "lucide-react";
 import type { UIMessage } from "@/types";
 import { formatResult } from "@/components/lib/tool-formatting";
+import { guessLanguage } from "@/lib/languages";
+import { ToolCodeBlock } from "./ToolCodeBlock";
 
 /** Structured fields that the SDK's Grep/Glob tool can return. */
 interface GrepResultFields {
@@ -45,33 +47,17 @@ function FilesMatchList({ filenames }: { filenames: string[] }) {
 
 function ContentResult({ content, numLines }: { content: string; numLines?: number }) {
   if (!content) return null;
-
-  // Parse lines to identify match lines (with :lineNum:) vs context (with -lineNum-)
-  const lines = content.split("\n");
+  const language = guessLanguage(content) ?? "text";
 
   return (
-    <pre className="max-h-64 overflow-auto rounded-md bg-foreground/[0.05] px-3 py-2 text-[11px] whitespace-pre-wrap wrap-break-word">
-      {lines.map((line, i) => {
-        // Separator between blocks
-        if (line === "--") {
-          return (
-            <div key={i} className="text-foreground/15 my-0.5 border-t border-foreground/[0.06]" />
-          );
-        }
-        // Match lines contain a : after the line number (e.g. "file.ts:42:  matched text")
-        const isMatch = /^[^-]*:\d+:/.test(line) || /^\d+:/.test(line);
-        return (
-          <div key={i} className={isMatch ? "text-foreground/70" : "text-foreground/35"}>
-            {line}
-          </div>
-        );
-      })}
+    <div>
+      <ToolCodeBlock code={content} language={language} maxHeightClassName="max-h-64" />
       {numLines != null && numLines > 0 && (
         <div className="mt-1 text-[10px] text-foreground/25">
           {numLines} line{numLines !== 1 ? "s" : ""}
         </div>
       )}
-    </pre>
+    </div>
   );
 }
 
@@ -138,9 +124,7 @@ export function SearchContent({ message }: { message: UIMessage }) {
 
         {/* Count mode — just show count text if we have content */}
         {mode === "count" && content && (
-          <pre className="max-h-32 overflow-auto rounded-md bg-foreground/[0.05] px-3 py-2 text-[11px] text-foreground/50 whitespace-pre-wrap wrap-break-word">
-            {content}
-          </pre>
+          <ToolCodeBlock code={content} language="text" maxHeightClassName="max-h-32" />
         )}
       </div>
     );
@@ -153,9 +137,7 @@ export function SearchContent({ message }: { message: UIMessage }) {
     <div className="space-y-1.5 text-xs">
       {header}
       {formattedResult && (
-        <pre className="max-h-48 overflow-auto rounded-md bg-foreground/[0.05] px-3 py-2 text-[11px] text-foreground/50 whitespace-pre-wrap wrap-break-word">
-          {formattedResult}
-        </pre>
+        <ToolCodeBlock code={formattedResult} language={guessLanguage(formattedResult) ?? "text"} maxHeightClassName="max-h-48" />
       )}
     </div>
   );

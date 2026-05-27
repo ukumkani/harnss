@@ -31,6 +31,7 @@ import {
 } from "@/lib/engine/codex-adapter";
 import { suppressNextSessionCompletion } from "@/lib/notification-utils";
 import { captureException } from "@/lib/analytics/analytics";
+import { appendGitStashResult } from "@/lib/session/git-stash-after-turn";
 import { createSystemMessage, createUserMessage, nextId } from "@/lib/message-factory";
 import { useEngineBase } from "./useEngineBase";
 
@@ -681,7 +682,10 @@ export function useCodex({
         createSystemMessage(msg, true),
       ]);
     }
-  }, [finalizeStreamingAssistant]);
+    void appendGitStashResult(sessionInfo?.cwd, messagesRef.current, (message) => {
+      setMessages((prev) => [...prev, message]);
+    });
+  }, [finalizeStreamingAssistant, messagesRef, sessionInfo?.cwd]);
 
   // ── Token usage ──
   const handleTokenUsage = useCallback((params: CodexTokenUsageNotification) => {

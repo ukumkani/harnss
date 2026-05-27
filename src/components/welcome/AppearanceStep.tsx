@@ -162,7 +162,7 @@ export function AppearanceStep({
           transition={{ duration: 0.4 }}
         >
           <h2
-            className="text-5xl italic"
+            className="text-5xl"
             style={{
               fontFamily: "'Instrument Serif', Georgia, serif",
               color: "oklch(0.60 0.20 250)",

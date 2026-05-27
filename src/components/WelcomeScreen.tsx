@@ -216,7 +216,7 @@ function SidebarArrow({ anchorElement }: SidebarArrowProps) {
         transition={{ delay: 1.6, duration: 0.4 }}
       >
         <span
-          className="italic text-foreground/[0.16]"
+          className="text-foreground/[0.16]"
           style={{ fontFamily: DISPLAY_FONT, fontSize: "17px" }}
         >
           your threads are in the sidebar
@@ -351,7 +351,7 @@ export const WelcomeScreen = memo(function WelcomeScreen({
             transition={{ delay: 0.1, duration: 0.5 }}
           >
             <h1
-              className="text-5xl italic"
+              className="text-5xl"
               style={{ fontFamily: DISPLAY_FONT, color: "oklch(0.65 0.22 25)" }}
             >
               Open a project
@@ -402,7 +402,7 @@ export const WelcomeScreen = memo(function WelcomeScreen({
           >
             <motion.h1
               key={continueMessage.headline}
-              className="text-5xl italic"
+              className="text-5xl"
               style={{ fontFamily: DISPLAY_FONT, color: continueMessage.accent }}
               initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}

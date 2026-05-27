@@ -67,6 +67,7 @@ async function readRepoMetadata(cwd: string): Promise<RepoMetadata | null> {
 }
 
 const WORKTREE_SETUP_FILE = ".harnss/worktree.json";
+const NO_LOCAL_CHANGES_RE = /no local changes/i;
 
 /** Run a shell command in a given cwd, returning stdout. */
 function shellExec(command: string, cwd: string): Promise<string> {
@@ -346,6 +347,39 @@ export function register(): void {
       return { ok: true, output };
     } catch (err) {
       return { error: reportError("GIT_COMMIT_ERR", err) };
+    }
+  });
+
+  ipcMain.handle("git:stash-push", async (_event, { cwd, message }: { cwd: string; message: string }) => {
+    try {
+      await gitExec(["rev-parse", "--is-inside-work-tree"], cwd);
+    } catch {
+      return { skipped: true };
+    }
+
+    let branch: string | null = null;
+    try {
+      const rawBranch = (await gitExec(["rev-parse", "--abbrev-ref", "HEAD"], cwd)).trim();
+      branch = rawBranch && rawBranch !== "HEAD" ? rawBranch : null;
+    } catch {
+      branch = null;
+    }
+
+    try {
+      const output = await gitExec(["stash", "push", "-m", message], cwd);
+      return {
+        ok: true,
+        branch,
+        status: NO_LOCAL_CHANGES_RE.test(output) ? "missing" : "success",
+        output,
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        branch,
+        status: "failure",
+        error: reportError("GIT_STASH_PUSH_ERR", err),
+      };
     }
   });
 
