@@ -138,6 +138,9 @@ function canReuseRowDescriptor(previous: RowDescriptor | undefined, next: RowDes
 interface ChatMessageRowProps {
   row: RowDescriptor;
   showThinking: boolean;
+  currentTurnMessageId: string | null;
+  currentTurnState: "processing" | "permission" | null;
+  lastEditableUserMessageId: string | null;
   animatingGroupKeys: Set<string>;
   assistantTurnDividerLabels: Map<string, string>;
   continuationIds: Set<string>;
@@ -147,11 +150,15 @@ interface ChatMessageRowProps {
   onSendQueuedNow?: (messageId: string) => void;
   onUnqueueQueuedMessage?: (messageId: string) => void;
   onOpenFile?: (filePath: string) => void;
+  onEditLastUserMessage?: (text: string) => void | Promise<void>;
 }
 
 const ChatMessageRow = memo(function ChatMessageRow({
   row,
   showThinking,
+  currentTurnMessageId,
+  currentTurnState,
+  lastEditableUserMessageId,
   animatingGroupKeys,
   assistantTurnDividerLabels,
   continuationIds,
@@ -161,6 +168,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
   onSendQueuedNow,
   onUnqueueQueuedMessage,
   onOpenFile,
+  onEditLastUserMessage,
 }: ChatMessageRowProps) {
   // ── Display preferences from Zustand store ──
   const autoExpandTools = useSettingsStore((s) => s.autoExpandTools);
@@ -242,6 +250,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
       <MessageBubble
         message={msg}
         showThinking={showThinking}
+        currentTurnState={msg.id === currentTurnMessageId ? currentTurnState : null}
         assistantTurnDividerLabel={assistantTurnDividerLabels.get(msg.id)}
         isContinuation={continuationIds.has(msg.id)}
         isSendNextQueued={sendNextId === msg.id}
@@ -249,12 +258,17 @@ const ChatMessageRow = memo(function ChatMessageRow({
         onFullRevert={onFullRevert}
         onSendQueuedNow={onSendQueuedNow}
         onUnqueueQueued={onUnqueueQueuedMessage}
+        canEditAndResend={msg.id === lastEditableUserMessageId}
+        onEditAndResend={onEditLastUserMessage}
       />
     </div>
   );
 }, (prev, next) =>
   prev.row === next.row &&
   prev.showThinking === next.showThinking &&
+  prev.currentTurnMessageId === next.currentTurnMessageId &&
+  prev.currentTurnState === next.currentTurnState &&
+  prev.lastEditableUserMessageId === next.lastEditableUserMessageId &&
   prev.animatingGroupKeys === next.animatingGroupKeys &&
   prev.assistantTurnDividerLabels === next.assistantTurnDividerLabels &&
   prev.continuationIds === next.continuationIds &&
@@ -263,7 +277,8 @@ const ChatMessageRow = memo(function ChatMessageRow({
   prev.onFullRevert === next.onFullRevert &&
   prev.onSendQueuedNow === next.onSendQueuedNow &&
   prev.onUnqueueQueuedMessage === next.onUnqueueQueuedMessage &&
-  prev.onOpenFile === next.onOpenFile,
+  prev.onOpenFile === next.onOpenFile &&
+  prev.onEditLastUserMessage === next.onEditLastUserMessage,
 );
 
 // ── ChatViewProps ──
@@ -271,6 +286,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
 interface ChatViewProps {
   messages: UIMessage[];
   isProcessing: boolean;
+  hasPendingPermission?: boolean;
   showThinking: boolean;
   extraBottomPadding?: boolean;
   scrollToMessageId?: string;
@@ -283,6 +299,7 @@ interface ChatViewProps {
   onUnqueueQueuedMessage?: (messageId: string) => void;
   sendNextId?: string | null;
   onOpenFile?: (filePath: string) => void;
+  onEditLastUserMessage?: (text: string) => void | Promise<void>;
   /** Current space ID — included in remount key so space switches show spinner immediately */
   spaceId?: string;
 }
@@ -366,9 +383,9 @@ export const ChatView = memo(function ChatView(props: ChatViewProps) {
 // ── ChatViewContent (inner, module-level) ──
 
 function ChatViewContent({
-  messages, isProcessing, showThinking, extraBottomPadding, scrollToMessageId, onScrolledToMessage,
+  messages, isProcessing, hasPendingPermission = false, showThinking, extraBottomPadding, scrollToMessageId, onScrolledToMessage,
   sessionId, onRevert, onFullRevert, onTopScrollProgress,
-  onSendQueuedNow, onUnqueueQueuedMessage, sendNextId, onOpenFile,
+  onSendQueuedNow, onUnqueueQueuedMessage, sendNextId, onOpenFile, onEditLastUserMessage,
 }: ChatViewProps) {
   // ── Display preferences from Zustand store (only those used directly in ChatViewContent) ──
   const autoGroupTools = useSettingsStore((s) => s.autoGroupTools);
@@ -554,6 +571,21 @@ function ChatViewContent({
       (m.role === "tool_call" && !m.toolResult),
     );
   }, [isProcessing, nonQueuedMessages, showThinking]);
+
+  const currentTurnState = hasPendingPermission
+    ? "permission"
+    : isProcessing
+      ? "processing"
+      : null;
+
+  const currentTurnMessageId = useMemo(() => {
+    if (!currentTurnState) return null;
+    const lastUserMessage = nonQueuedMessages.findLast((m) => m.role === "user" && !m.isQueued);
+    return lastUserMessage?.id ?? null;
+  }, [currentTurnState, nonQueuedMessages]);
+  const lastEditableUserMessageId = useMemo(() => {
+    return nonQueuedMessages.findLast((m) => m.role === "user" && !m.isQueued)?.id ?? null;
+  }, [nonQueuedMessages]);
 
   const rows = useMemo(() => {
     const builtRows = buildRows(
@@ -866,6 +898,9 @@ function ChatViewContent({
                 <ChatMessageRow
                   row={row}
                   showThinking={showThinking}
+                  currentTurnMessageId={currentTurnMessageId}
+                  currentTurnState={currentTurnState}
+                  lastEditableUserMessageId={lastEditableUserMessageId}
                   animatingGroupKeys={animatingGroupKeys}
                   assistantTurnDividerLabels={assistantTurnDividerLabels}
                   continuationIds={continuationIds}
@@ -875,6 +910,7 @@ function ChatViewContent({
                   onSendQueuedNow={onSendQueuedNow}
                   onUnqueueQueuedMessage={onUnqueueQueuedMessage}
                   onOpenFile={onOpenFile}
+                  onEditLastUserMessage={onEditLastUserMessage}
                 />
               </div>
             ))}

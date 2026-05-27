@@ -675,7 +675,7 @@ export function useACP({ sessionId, initialMessages, initialConfigOptions, initi
     totalCost, setTotalCost,
     contextUsage,
     send, sendRaw, stop, interrupt, compact,
-    pendingPermission, respondPermission,
+    pendingPermission, setPendingPermission, respondPermission,
     setPermissionMode,
     configOptions, setConfigOptions, setConfig, configOptionsLoading,
     slashCommands,

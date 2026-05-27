@@ -1082,6 +1082,7 @@ export function useClaude({ sessionId, initialMessages, initialMeta, initialPerm
     interrupt,
     compact,
     pendingPermission,
+    setPendingPermission,
     respondPermission,
     setPermissionMode,
     setModel,

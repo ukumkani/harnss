@@ -89,6 +89,17 @@ export async function appendGitStashResult(
       ? "缺失"
       : "失败";
   const branchText = result.branch ?? "null";
-  const detail = result.error ? `${desc}；${result.error}` : desc;
-  appendMessage(createSystemMessage(`Git stash push: \`${branchText}\` ${statusText} ${detail}`));
+  const stashIdText = result.stashId ? ` stashId=${result.stashId}` : "";
+  const stashedPaths = result.stashedPaths ?? [];
+  const stashedText = result.status === "success"
+    ? stashedPaths.length > 0
+      ? `；已暂存: ${stashedPaths.map((filePath) => `\`${filePath}\``).join(", ")}`
+      : "；已暂存: 无"
+    : "";
+  const unstashedPaths = result.unstashedPaths ?? [];
+  const unstashedText = unstashedPaths.length > 0
+    ? `；未暂存: ${unstashedPaths.map((filePath) => `\`${filePath}\``).join(", ")}`
+    : "；未暂存: 无";
+  const errorText = result.error ? `；错误: ${result.error}` : "";
+  appendMessage(createSystemMessage(`Git stash push: \`${branchText}\`${stashIdText} ${statusText} ${desc}${stashedText}${unstashedText}${errorText}`));
 }

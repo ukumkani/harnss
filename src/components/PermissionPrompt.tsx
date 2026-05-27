@@ -40,7 +40,7 @@ const TOOL_LABELS: Record<string, string> = {
 };
 
 const PERMISSION_PROMPT_SURFACE_CLASS =
-  "pointer-events-auto rounded-2xl border border-[color:var(--foreground)] bg-background shadow-lg";
+  "permission-prompt-surface pointer-events-auto rounded-2xl border bg-background";
 const PERMISSION_PROMPT_OUTER_CLASS =
   `mx-auto w-full px-4 pb-4 ${BOTTOM_CHAT_MAX_WIDTH_CLASS}`;
 const PERMISSION_ACTION_BUTTON_CLASS =
@@ -619,7 +619,7 @@ export function PermissionPrompt({
 
   return (
     <div className={PERMISSION_PROMPT_OUTER_CLASS}>
-      <div className={`${PERMISSION_PROMPT_SURFACE_CLASS} flex flex-col overflow-hidden`}>
+      <div className={`${PERMISSION_PROMPT_SURFACE_CLASS} flex flex-col`}>
         <div className="flex flex-wrap items-center justify-end gap-2 border-b border-foreground/30 px-3 py-2">
           <Button
             size="sm"

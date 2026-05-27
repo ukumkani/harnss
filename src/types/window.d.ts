@@ -240,7 +240,13 @@ declare global {
         unstageAll: (cwd: string) => Promise<IpcResult>;
         discard: (cwd: string, files: string[]) => Promise<IpcResult>;
         commit: (cwd: string, message: string) => Promise<IpcResult & { output?: string }>;
-        stashPush: (cwd: string, message: string) => Promise<IpcResult & { skipped?: boolean; branch?: string | null; status?: "success" | "failure" | "missing"; output?: string }>;
+        stashPush: (cwd: string, message: string) => Promise<IpcResult & { skipped?: boolean; branch?: string | null; status?: "success" | "failure" | "missing"; stashId?: string; stashedPaths?: string[]; unstashedPaths?: string[]; output?: string }>;
+        prepareBranch: (cwd: string) => Promise<IpcResult & {
+          skipped?: boolean;
+          branch?: string | null;
+          remoteUpdate?: { status: "success" | "missing" | "failure"; output?: string; error?: string };
+          stashRestore?: { status: "success" | "missing" | "failure"; stashId?: string; restoredPaths?: string[]; output?: string; error?: string };
+        }>;
         branches: (cwd: string) => Promise<GitBranch[] | { error: string }>;
         checkout: (cwd: string, branch: string) => Promise<IpcResult>;
         createBranch: (cwd: string, name: string) => Promise<IpcResult>;

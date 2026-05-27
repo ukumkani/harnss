@@ -1,5 +1,5 @@
 import { memo, useState, useMemo, createContext, useContext, type ReactNode } from "react";
-import { AlertCircle, Clock, Crosshair, File, Folder, Info, RotateCcw, Send, Undo2, X } from "lucide-react";
+import { AlertCircle, Check, Clock, Crosshair, File, Folder, Info, Pencil, RotateCcw, Send, Undo2, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -178,6 +178,7 @@ function renderWithMentions(text: string): ReactNode[] {
 interface MessageBubbleProps {
   message: UIMessage;
   showThinking?: boolean;
+  currentTurnState?: "processing" | "permission" | null;
   assistantTurnDividerLabel?: string;
   isContinuation?: boolean;
   /** True when this queued message is the prioritized "send next" item */
@@ -190,11 +191,15 @@ interface MessageBubbleProps {
   onSendQueuedNow?: (messageId: string) => void;
   /** Called when user removes a queued user message before it is sent */
   onUnqueueQueued?: (messageId: string) => void;
+  /** Enables editing the final user turn and resubmitting it. */
+  canEditAndResend?: boolean;
+  onEditAndResend?: (text: string) => void | Promise<void>;
 }
 
 export const MessageBubble = memo(function MessageBubble({
   message,
   showThinking = true,
+  currentTurnState = null,
   assistantTurnDividerLabel,
   isContinuation,
   isSendNextQueued = false,
@@ -202,12 +207,35 @@ export const MessageBubble = memo(function MessageBubble({
   onFullRevert,
   onSendQueuedNow,
   onUnqueueQueued,
+  canEditAndResend = false,
+  onEditAndResend,
 }: MessageBubbleProps) {
   // All hooks must be called before any early returns (Rules of Hooks)
   const isUser = message.role === "user";
   const [viewingImage, setViewingImage] = useState<ImageAttachment | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState("");
   const time = useMemo(() => new Date(message.timestamp).toLocaleTimeString(), [message.timestamp]);
   const displayContent = useMemo(() => isUser ? (message.displayContent ?? stripFileContext(message.content)) : message.content, [isUser, message.content, message.displayContent]);
+  const canSubmitEdit = editText.trim().length > 0;
+
+  const startEditing = () => {
+    setEditText(displayContent);
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditText("");
+  };
+
+  const submitEdit = () => {
+    const nextText = editText.trim();
+    if (!nextText || !onEditAndResend) return;
+    setIsEditing(false);
+    setEditText("");
+    void onEditAndResend(nextText);
+  };
 
   // Per-token fade-in animation via DOM surgery in useLayoutEffect.
   // Always renders ReactMarkdown (real-time markdown parsing) — the hook
@@ -235,76 +263,130 @@ export const MessageBubble = memo(function MessageBubble({
   if (isUser) {
     const checkpointId = message.checkpointId;
     const canRevert = !!checkpointId && (!!onRevert || !!onFullRevert);
+    const showEditAction = canEditAndResend && !!onEditAndResend && !message.isQueued;
+    const hasUserActions = canRevert || showEditAction;
     return (
       <div className={cn("group/user flex justify-end", CHAT_ROW_CLASS, message.isQueued && "opacity-80")}>
-        <div className={cn("relative max-w-[var(--chat-user-message-max-width,80%)]", canRevert && "pb-5")}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className={cn(
-                "rounded-2xl rounded-tr-sm bg-foreground/[0.14] px-3.5 py-2 text-sm text-foreground wrap-break-word whitespace-pre-wrap",
-                message.isQueued && "bg-foreground/[0.09]",
-                message.isQueued && "border border-dashed border-[color:var(--foreground)]",
-              )}>
-                {message.images && message.images.length > 0 && (
-                  <div className="mb-2 flex flex-wrap gap-2">
-                    {message.images.map((img) => (
-                      <img
-                        key={img.id}
-                        src={`data:${img.mediaType};base64,${img.data}`}
-                        alt={img.fileName ?? "attached image"}
-                        className="max-h-48 cursor-pointer rounded-lg transition-opacity hover:opacity-90"
-                        onClick={() => setViewingImage(img)}
-                      />
-                    ))}
-                  </div>
-                )}
-                <ImageLightbox
-                  image={viewingImage}
-                  open={!!viewingImage}
-                  onOpenChange={(isOpen) => { if (!isOpen) setViewingImage(null); }}
-                />
-                {renderWithMentions(displayContent)}
-                {message.isQueued && (
-                  <div className="mt-2 flex items-center gap-2 border-t border-foreground/30 pt-2 text-[11px] text-foreground/85">
-                    <Clock className="h-3 w-3 shrink-0" />
-                    <span>Queued</span>
-                    {(onSendQueuedNow || onUnqueueQueued) && (
-                      <div className="ms-auto flex items-center gap-1">
-                        {onSendQueuedNow && (
-                          <button
-                            type="button"
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-all",
-                              isSendNextQueued
-                                ? "bg-primary/15 text-primary hover:bg-primary/25"
-                                : "text-foreground/85 hover:bg-foreground/[0.05] hover:text-foreground",
-                            )}
-                            onClick={() => onSendQueuedNow(message.id)}
-                          >
-                            <Send className="h-2.5 w-2.5" />
-                            Send next
-                          </button>
-                        )}
-                        {onUnqueueQueued && (
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-foreground/85 transition-all hover:bg-destructive/10 hover:text-destructive"
-                            onClick={() => onUnqueueQueued(message.id)}
-                          >
-                            <X className="h-2.5 w-2.5" />
-                            Unqueue
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
+        <div className={cn("relative max-w-[var(--chat-user-message-max-width,80%)]", hasUserActions && "pb-5")}>
+          {isEditing ? (
+            <div className="rounded-2xl rounded-tr-sm border border-foreground/30 bg-background px-3.5 py-3 text-sm text-foreground shadow-sm">
+              <textarea
+                autoFocus
+                value={editText}
+                onChange={(event) => setEditText(event.target.value)}
+                onKeyDown={(event) => {
+                  if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                    event.preventDefault();
+                    submitEdit();
+                  }
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    cancelEditing();
+                  }
+                }}
+                className="max-h-[40vh] min-h-20 w-full resize-y bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/55"
+              />
+              <div className="mt-2 flex items-center justify-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={cancelEditing}
+                  className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] text-foreground/65 transition-colors hover:bg-muted/40 hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!canSubmitEdit}
+                  onClick={submitEdit}
+                  className="inline-flex h-7 items-center gap-1 rounded-md border border-foreground/30 px-2 text-[11px] text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Check className="h-3 w-3" />
+                  Resubmit
+                </button>
               </div>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p className="text-xs">{time}</p>
-            </TooltipContent>
-          </Tooltip>
+            </div>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={cn(
+                  "rounded-2xl rounded-tr-sm bg-foreground/[0.14] px-3.5 py-2 text-sm text-foreground wrap-break-word whitespace-pre-wrap",
+                  currentTurnState === "processing" && "chat-user-turn-processing",
+                  currentTurnState === "permission" && "chat-user-turn-permission",
+                  message.isQueued && "bg-foreground/[0.09]",
+                  message.isQueued && "border border-dashed border-[color:var(--foreground)]",
+                )}>
+                  {message.images && message.images.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      {message.images.map((img) => (
+                        <img
+                          key={img.id}
+                          src={`data:${img.mediaType};base64,${img.data}`}
+                          alt={img.fileName ?? "attached image"}
+                          className="max-h-48 cursor-pointer rounded-lg transition-opacity hover:opacity-90"
+                          onClick={() => setViewingImage(img)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <ImageLightbox
+                    image={viewingImage}
+                    open={!!viewingImage}
+                    onOpenChange={(isOpen) => { if (!isOpen) setViewingImage(null); }}
+                  />
+                  {renderWithMentions(displayContent)}
+                  {message.isQueued && (
+                    <div className="mt-2 flex items-center gap-2 border-t border-foreground/30 pt-2 text-[11px] text-foreground/85">
+                      <Clock className="h-3 w-3 shrink-0" />
+                      <span>Queued</span>
+                      {(onSendQueuedNow || onUnqueueQueued) && (
+                        <div className="ms-auto flex items-center gap-1">
+                          {onSendQueuedNow && (
+                            <button
+                              type="button"
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-all",
+                                isSendNextQueued
+                                  ? "bg-primary/15 text-primary hover:bg-primary/25"
+                                  : "text-foreground/85 hover:bg-foreground/[0.05] hover:text-foreground",
+                              )}
+                              onClick={() => onSendQueuedNow(message.id)}
+                            >
+                              <Send className="h-2.5 w-2.5" />
+                              Send next
+                            </button>
+                          )}
+                          {onUnqueueQueued && (
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-foreground/85 transition-all hover:bg-destructive/10 hover:text-destructive"
+                              onClick={() => onUnqueueQueued(message.id)}
+                            >
+                              <X className="h-2.5 w-2.5" />
+                              Unqueue
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p className="text-xs">{time}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {showEditAction && !isEditing && (
+            <button
+              type="button"
+              onClick={startEditing}
+              className="pointer-events-auto absolute start-0 -bottom-0.5 flex items-center gap-1 whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] text-foreground/30 opacity-0 transition-colors hover:text-foreground/85 group-hover/user:opacity-100"
+            >
+              <Pencil className="h-3 w-3" />
+              Edit
+            </button>
+          )}
           {/* Revert dropdown — visible on hover, offers file-only or full (files + chat) revert */}
           {canRevert && (
             <div className="pointer-events-none absolute end-0 -bottom-0.5 w-max opacity-0 transition-opacity group-hover/user:opacity-100">
@@ -405,6 +487,7 @@ export const MessageBubble = memo(function MessageBubble({
   );
 }, (prev, next) =>
   prev.message.content === next.message.content &&
+  prev.message.displayContent === next.message.displayContent &&
   prev.message.thinking === next.message.thinking &&
   prev.message.isStreaming === next.message.isStreaming &&
   prev.message.thinkingComplete === next.message.thinkingComplete &&
@@ -412,6 +495,7 @@ export const MessageBubble = memo(function MessageBubble({
   prev.message.isError === next.message.isError &&
   prev.message.checkpointId === next.message.checkpointId &&
   prev.message.isQueued === next.message.isQueued &&
+  prev.currentTurnState === next.currentTurnState &&
   prev.assistantTurnDividerLabel === next.assistantTurnDividerLabel &&
   prev.isSendNextQueued === next.isSendNextQueued &&
   prev.showThinking === next.showThinking &&
@@ -419,7 +503,9 @@ export const MessageBubble = memo(function MessageBubble({
   prev.onRevert === next.onRevert &&
   prev.onFullRevert === next.onFullRevert &&
   prev.onSendQueuedNow === next.onSendQueuedNow &&
-  prev.onUnqueueQueued === next.onUnqueueQueued,
+  prev.onUnqueueQueued === next.onUnqueueQueued &&
+  prev.canEditAndResend === next.canEditAndResend &&
+  prev.onEditAndResend === next.onEditAndResend,
 );
 
 /**

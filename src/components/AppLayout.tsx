@@ -1548,6 +1548,7 @@ export function AppLayout() {
                 spaceId={spaceManager.activeSpaceId}
                 messages={manager.messages}
                 isProcessing={manager.isProcessing}
+                hasPendingPermission={!!manager.pendingPermission}
                 showThinking={showThinking}
                 extraBottomPadding={!!manager.pendingPermission}
                 scrollToMessageId={scrollToMessageId}
@@ -1560,6 +1561,7 @@ export function AppLayout() {
                 onUnqueueQueuedMessage={handleUnqueueMessage}
                 sendNextId={manager.sendNextId}
                 onOpenFile={handleOpenProjectFile}
+                onEditLastUserMessage={manager.editLastUserMessageAndResend}
               />
               <div data-chat-composer className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
                 <BottomComposer

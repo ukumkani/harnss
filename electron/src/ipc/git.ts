@@ -46,6 +46,69 @@ function parseWorktreePaths(raw: string): string[] {
   return paths;
 }
 
+function parsePorcelainPaths(raw: string): string[] {
+  const paths: string[] = [];
+  const entries = raw.split("\0").filter(Boolean);
+  for (let index = 0; index < entries.length; index++) {
+    const entry = entries[index];
+    const status = entry.slice(0, 2);
+    const filePath = entry.slice(3);
+    if (filePath) paths.push(filePath);
+    if (status[0] === "R" || status[0] === "C" || status[1] === "R" || status[1] === "C") {
+      const nextPath = entries[index + 1];
+      if (nextPath) {
+        paths.push(nextPath);
+        index++;
+      }
+    }
+  }
+  return Array.from(new Set(paths));
+}
+
+async function toProjectRelativePaths(cwd: string, repoPaths: string[]): Promise<string[]> {
+  const root = (await gitExec(["rev-parse", "--show-toplevel"], cwd)).trim();
+  const cwdPath = normalizePath(cwd);
+  const rootPath = normalizePath(root);
+  return Array.from(new Set(repoPaths))
+    .map((repoPath) => path.relative(cwdPath, path.resolve(rootPath, repoPath)))
+    .filter((relativePath) => relativePath && !relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+    .sort((a, b) => a.localeCompare(b));
+}
+
+async function listRemainingGitPaths(cwd: string): Promise<string[]> {
+  try {
+    const raw = await gitExec(["-c", "status.relativePaths=false", "status", "--porcelain=v1", "-z", "--untracked-files=all"], cwd);
+    return toProjectRelativePaths(cwd, parsePorcelainPaths(raw));
+  } catch {
+    return [];
+  }
+}
+
+async function listStashedGitPaths(cwd: string, stashId: string): Promise<string[]> {
+  try {
+    const raw = await gitExec(["diff", "--name-only", "-z", `${stashId}^1`, stashId], cwd);
+    return toProjectRelativePaths(cwd, raw.split("\0").filter(Boolean));
+  } catch {
+    return [];
+  }
+}
+
+async function findLatestAutoStash(cwd: string): Promise<{ ref: string; id: string } | null> {
+  try {
+    const raw = await gitExec(["stash", "list", "--format=%gd%x1f%H%x1f%s%x1e"], cwd);
+    for (const record of raw.split("\x1e")) {
+      if (!record.trim()) continue;
+      const [ref, id, subject] = record.split("\x1f");
+      if (ref && id && subject?.startsWith(AUTO_STASH_PREFIX)) {
+        return { ref, id };
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 async function readRepoMetadata(cwd: string): Promise<RepoMetadata | null> {
   try {
     const raw = await gitExec(["rev-parse", "--show-toplevel", "--git-dir", "--git-common-dir"], cwd);
@@ -68,6 +131,7 @@ async function readRepoMetadata(cwd: string): Promise<RepoMetadata | null> {
 
 const WORKTREE_SETUP_FILE = ".harnss/worktree.json";
 const NO_LOCAL_CHANGES_RE = /no local changes/i;
+const AUTO_STASH_PREFIX = "harnss-auto:";
 
 /** Run a shell command in a given cwd, returning stdout. */
 function shellExec(command: string, cwd: string): Promise<string> {
@@ -366,11 +430,20 @@ export function register(): void {
     }
 
     try {
-      const output = await gitExec(["stash", "push", "-m", message], cwd);
+      const output = await gitExec(["stash", "push", "-m", `${AUTO_STASH_PREFIX} ${message}`], cwd);
+      const status = NO_LOCAL_CHANGES_RE.test(output) ? "missing" : "success";
+      const stashId = status === "success"
+        ? (await gitExec(["rev-parse", "--verify", "refs/stash"], cwd)).trim()
+        : undefined;
+      const stashedPaths = stashId ? await listStashedGitPaths(cwd, stashId) : [];
+      const unstashedPaths = await listRemainingGitPaths(cwd);
       return {
         ok: true,
         branch,
-        status: NO_LOCAL_CHANGES_RE.test(output) ? "missing" : "success",
+        status,
+        stashId,
+        stashedPaths,
+        unstashedPaths,
         output,
       };
     } catch (err) {
@@ -378,9 +451,72 @@ export function register(): void {
         ok: false,
         branch,
         status: "failure",
+        unstashedPaths: await listRemainingGitPaths(cwd),
         error: reportError("GIT_STASH_PUSH_ERR", err),
       };
     }
+  });
+
+  ipcMain.handle("git:prepare-branch", async (_event, cwd: string) => {
+    try {
+      await gitExec(["rev-parse", "--is-inside-work-tree"], cwd);
+    } catch {
+      return { skipped: true };
+    }
+
+    let branch: string | null = null;
+    try {
+      const rawBranch = (await gitExec(["rev-parse", "--abbrev-ref", "HEAD"], cwd)).trim();
+      branch = rawBranch && rawBranch !== "HEAD" ? rawBranch : null;
+    } catch {
+      branch = null;
+    }
+
+    let remoteUpdate: { status: "success" | "missing" | "failure"; output?: string; error?: string } = { status: "missing" };
+    try {
+      await gitExec(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], cwd);
+      try {
+        remoteUpdate = {
+          status: "success",
+          output: await gitExec(["pull", "--ff-only"], cwd),
+        };
+      } catch (err) {
+        remoteUpdate = {
+          status: "failure",
+          error: reportError("GIT_PREPARE_PULL_ERR", err),
+        };
+      }
+    } catch {
+      remoteUpdate = { status: "missing" };
+    }
+
+    const autoStash = await findLatestAutoStash(cwd);
+    let stashRestore: { status: "success" | "missing" | "failure"; stashId?: string; restoredPaths?: string[]; output?: string; error?: string } = { status: "missing" };
+    if (autoStash) {
+      const restoredPaths = await listStashedGitPaths(cwd, autoStash.id);
+      try {
+        stashRestore = {
+          status: "success",
+          stashId: autoStash.id,
+          restoredPaths,
+          output: await gitExec(["stash", "pop", "--index", autoStash.ref], cwd),
+        };
+      } catch (err) {
+        stashRestore = {
+          status: "failure",
+          stashId: autoStash.id,
+          restoredPaths,
+          error: reportError("GIT_PREPARE_STASH_POP_ERR", err),
+        };
+      }
+    }
+
+    return {
+      ok: remoteUpdate.status !== "failure" && stashRestore.status !== "failure",
+      branch,
+      remoteUpdate,
+      stashRestore,
+    };
   });
 
   ipcMain.handle("git:branches", async (_event, cwd: string) => {

@@ -255,6 +255,7 @@ function SplitChatPaneInner({
             spaceId={spaceId}
             messages={paneState.messages}
             isProcessing={paneState.isProcessing}
+            hasPendingPermission={!!paneState.pendingPermission}
             showThinking={showThinking}
             extraBottomPadding={!!paneState.pendingPermission}
             sessionId={sessionId}

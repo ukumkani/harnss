@@ -68,7 +68,7 @@ export function useSessionLifecycle({
   clearQueue,
   resetCodexEffortToModelDefault,
 }: UseSessionLifecycleParams) {
-  const { claude, acp, codex } = engines;
+  const { claude, acp, codex, engine } = engines;
 
   // ── Session cache: LRU payload cache, session list loading, model hydration ──
   const {
@@ -153,12 +153,61 @@ export function useSessionLifecycle({
 
   // ── Send: the main message-sending function (kept here — most intertwined) ──
 
+  const prepareGitBranchForTask = useCallback(async () => {
+    const activeId = refs.activeSessionIdRef.current;
+    const projectId = activeId === DRAFT_ID
+      ? refs.draftProjectIdRef.current
+      : refs.sessionsRef.current.find((session) => session.id === activeId)?.projectId;
+    if (!projectId) return;
+
+    const project = findProject(projectId);
+    if (!project) return;
+
+    const result = await window.claude.git.prepareBranch(getProjectCwd(project));
+    if (result.skipped) return;
+
+    const remoteStatus = result.remoteUpdate?.status ?? "missing";
+    const stashStatus = result.stashRestore?.status ?? "missing";
+    if (remoteStatus === "missing" && stashStatus === "missing") return;
+
+    const label = (status: "success" | "missing" | "failure") =>
+      status === "success" ? "成功" : status === "missing" ? "缺失" : "失败";
+    const branchText = result.branch ?? "null";
+    const restoredPaths = result.stashRestore?.restoredPaths ?? [];
+    const restoredText = stashStatus === "success"
+      ? restoredPaths.length > 0
+        ? `；恢复: ${restoredPaths.map((filePath) => `\`${filePath}\``).join(", ")}`
+        : "；恢复: 无"
+      : "";
+    const stashIdText = result.stashRestore?.stashId ? ` stashId=${result.stashRestore.stashId}` : "";
+    const errors = [
+      result.remoteUpdate?.error ? `远程更新错误: ${result.remoteUpdate.error}` : "",
+      result.stashRestore?.error ? `暂存恢复错误: ${result.stashRestore.error}` : "",
+      result.error ? `错误: ${result.error}` : "",
+    ].filter(Boolean);
+    const errorText = errors.length > 0 ? `；${errors.join("；")}` : "";
+    const isError = remoteStatus === "failure" || stashStatus === "failure" || !!result.error;
+
+    engine.setMessages((prev) => [
+      ...prev,
+      createSystemMessage(
+        `Git pre-task update: \`${branchText}\` remote=${label(remoteStatus)} stash=${label(stashStatus)}${stashIdText}${restoredText}${errorText}`,
+        isError,
+      ),
+    ]);
+  }, [engine, findProject, getProjectCwd, refs]);
+
   const send = useCallback(
     async (text: string, images?: ImageAttachment[], displayText?: string) => {
       const activeId = refs.activeSessionIdRef.current;
-      const sendEngine = refs.activeSessionIdRef.current === DRAFT_ID
+      if (!activeId) return;
+
+      const activeSessionEngine = activeId === DRAFT_ID
+        ? null
+        : (refs.sessionsRef.current.find(s => s.id === activeId)?.engine ?? "claude");
+      const sendEngine = activeId === DRAFT_ID
         ? (refs.startOptionsRef.current.engine ?? "claude")
-        : (refs.sessionsRef.current.find(s => s.id === refs.activeSessionIdRef.current)?.engine ?? "claude");
+        : (activeSessionEngine ?? "claude");
       const trackMessageSent = (sessionId?: string) => {
         capture("message_sent", {
           engine: sendEngine,
@@ -167,6 +216,14 @@ export function useSessionLifecycle({
           ...(sendEngine === "acp" && sessionId ? { session_id: sessionId } : {}),
         });
       };
+
+      if (activeSessionEngine && refs.isProcessingRef.current && refs.liveSessionIdsRef.current.has(activeId)) {
+        trackMessageSent(activeSessionEngine === "acp" ? activeId : undefined);
+        enqueueMessage(text, images, displayText);
+        return;
+      }
+
+      await prepareGitBranchForTask();
 
       if (activeId === DRAFT_ID) {
         const draftEngine = refs.startOptionsRef.current.engine ?? "claude";
@@ -276,16 +333,6 @@ export function useSessionLifecycle({
         return;
       }
 
-      if (!activeId) return;
-
-      // Queue check: if engine is processing, enqueue instead of sending directly
-      const activeSessionEngine = refs.sessionsRef.current.find(s => s.id === activeId)?.engine ?? "claude";
-      if (refs.isProcessingRef.current && refs.liveSessionIdsRef.current.has(activeId)) {
-        trackMessageSent(activeSessionEngine === "acp" ? activeId : undefined);
-        enqueueMessage(text, images, displayText);
-        return;
-      }
-
       if (activeSessionEngine === "acp") {
         // ACP sessions: send through ACP hook if live
         if (refs.liveSessionIdsRef.current.has(activeId)) {
@@ -348,6 +395,7 @@ export function useSessionLifecycle({
       reviveAcpSession,
       reviveCodexSession,
       enqueueMessage,
+      prepareGitBranchForTask,
     ],
   );
 

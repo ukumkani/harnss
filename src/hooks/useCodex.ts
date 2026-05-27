@@ -1151,7 +1151,7 @@ export function useCodex({
     contextUsage,
     isCompacting,
     send, sendRaw, stop, interrupt, compact,
-    pendingPermission, respondPermission,
+    pendingPermission, setPendingPermission, respondPermission,
     setPermissionMode,
     todoItems,
     authRequired, setAuthRequired,

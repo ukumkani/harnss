@@ -357,6 +357,64 @@ export function useSessionManager(
     resetCodexEffortToModelDefault,
   });
 
+  const interruptActiveSession = useCallback(async () => {
+    // Clear queued messages before interrupting
+    clearQueue();
+    // During ACP startup (DRAFT + processing), abort the pending start process
+    if (activeSessionIdRef.current === DRAFT_ID
+        && startOptionsRef.current.engine === "acp"
+        && isProcessingRef.current) {
+      if (draftAcpSessionIdRef.current && liveSessionIdsRef.current.has(draftAcpSessionIdRef.current)) {
+        await window.claude.acp.cancel(draftAcpSessionIdRef.current);
+      } else {
+        await window.claude.acp.abortPendingStart();
+      }
+      pendingPermissionRef.current = null;
+      acp.setPendingPermission(null);
+      acp.setIsProcessing(false);
+      return;
+    }
+    await engine.interrupt();
+    pendingPermissionRef.current = null;
+    engine.setPendingPermission(null);
+  }, [acp, clearQueue, engine]);
+
+  const editLastUserMessageAndResend = useCallback(async (text: string) => {
+    const nextText = text.trim();
+    if (!nextText) return;
+
+    const currentMessages = messagesRef.current;
+    const lastUserIndex = currentMessages.findLastIndex(
+      (message) => message.role === "user" && !message.isQueued,
+    );
+    if (lastUserIndex < 0) return;
+
+    const lastUserMessage = currentMessages[lastUserIndex];
+    if (isProcessingRef.current || pendingPermissionRef.current) {
+      await interruptActiveSession();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    clearQueue();
+    const truncatedMessages = currentMessages.slice(0, lastUserIndex);
+    messagesRef.current = truncatedMessages;
+    isProcessingRef.current = false;
+    pendingPermissionRef.current = null;
+    engine.setIsProcessing(false);
+    engine.setPendingPermission(null);
+    engine.setMessages(truncatedMessages);
+    const activeId = activeSessionIdRef.current;
+    if (activeId && activeId !== DRAFT_ID) {
+      backgroundStoreRef.current.updateMessages(activeId, () => truncatedMessages);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await send(
+      nextText,
+      lastUserMessage.images,
+      lastUserMessage.displayContent ? nextText : undefined,
+    );
+  }, [clearQueue, engine, interruptActiveSession, send]);
+
   const seedDevExampleConversation = useCallback(async () => {
     if (!import.meta.env.DEV) return;
     const { buildDevExampleConversation } = await import("../lib/dev-seeding/chat-seed");
@@ -592,6 +650,7 @@ export function useSessionManager(
     sessionInfo: engine.sessionInfo,
     totalCost: engine.totalCost,
     send,
+    editLastUserMessageAndResend,
     unqueueMessage,
     sendQueuedMessageNext,
     sendNextId,
@@ -600,23 +659,7 @@ export function useSessionManager(
     loadSplitPaneBootstrap,
     queuedCount,
     stop: engine.stop,
-    interrupt: async () => {
-      // Clear queued messages before interrupting
-      clearQueue();
-      // During ACP startup (DRAFT + processing), abort the pending start process
-      if (activeSessionIdRef.current === DRAFT_ID
-          && startOptionsRef.current.engine === "acp"
-          && isProcessingRef.current) {
-        if (draftAcpSessionIdRef.current && liveSessionIdsRef.current.has(draftAcpSessionIdRef.current)) {
-          await window.claude.acp.cancel(draftAcpSessionIdRef.current);
-        } else {
-          await window.claude.acp.abortPendingStart();
-        }
-        acp.setIsProcessing(false);
-        return;
-      }
-      await engine.interrupt();
-    },
+    interrupt: interruptActiveSession,
     pendingPermission: engine.pendingPermission,
     respondPermission: engine.respondPermission,
     contextUsage: engine.contextUsage,
