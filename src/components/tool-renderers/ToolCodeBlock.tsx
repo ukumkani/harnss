@@ -12,6 +12,7 @@ interface ToolCodeBlockProps {
   code: string;
   language: string;
   maxHeightClassName?: string;
+  hideHorizontalOverflow?: boolean;
 }
 
 const TOOL_CODE_STYLE: CSSProperties = {
@@ -30,12 +31,14 @@ export function ToolCodeBlock({
   code,
   language,
   maxHeightClassName = "max-h-48",
+  hideHorizontalOverflow = false,
 }: ToolCodeBlockProps) {
   const resolvedTheme = useResolvedTheme();
   const syntaxStyle = getCodeSyntaxTheme(resolvedTheme);
+  const overflowClassName = hideHorizontalOverflow ? "overflow-y-auto overflow-x-hidden" : "overflow-auto";
 
   return (
-    <div className={`${maxHeightClassName} overflow-auto rounded-md ${CODE_BLOCK_SURFACE_CLASS}`}>
+    <div className={`${maxHeightClassName} ${overflowClassName} rounded-md ${CODE_BLOCK_SURFACE_CLASS}`}>
       <SyntaxHighlighter
         language={language}
         style={syntaxStyle}

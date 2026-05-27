@@ -25,6 +25,7 @@ import type { CollaborationMode } from "./codex-protocol/CollaborationMode";
 import type { SkillsListEntry } from "./codex-protocol/v2/SkillsListEntry";
 import type { AppInfo } from "./codex-protocol/v2/AppInfo";
 import type { SessionMeta as SessionListItem } from "@shared/lib/session-persistence";
+import type { FileTreeNode } from "../lib/file-tree";
 import type {
   JiraProjectConfig,
   JiraBoard,
@@ -207,6 +208,7 @@ declare global {
       files: {
         list: (cwd: string) => Promise<{ files: string[]; dirs: string[] }>;
         listAll: (cwd: string) => Promise<{ files: string[]; dirs: string[] }>;
+        listDir: (cwd: string, path?: string) => Promise<{ entries: FileTreeNode[]; error?: string }>;
         watch: (cwd: string) => Promise<IpcResult>;
         unwatch: (cwd: string) => Promise<IpcResult>;
         calculateDeepSize: (
@@ -229,7 +231,7 @@ declare global {
             | { path: string; error: string; content?: undefined; isDir?: undefined }
           >
         >;
-        onChanged: (callback: (data: { cwd: string }) => void) => () => void;
+        onChanged: (callback: (data: { cwd: string; path?: string; paths?: string[] }) => void) => () => void;
       };
       git: {
         discoverRepos: (projectPath: string) => Promise<GitRepoInfo[]>;

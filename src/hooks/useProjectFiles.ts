@@ -1,120 +1,221 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { buildFileTree, type FileTreeNode } from "@/lib/file-tree";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FileTreeNode } from "@/lib/file-tree";
 import { captureException } from "@/lib/analytics/analytics";
-import { runWorkerTask, terminateWorker } from "@/lib/worker-request";
 
 interface UseProjectFilesReturn {
   tree: FileTreeNode[] | null;
   loading: boolean;
   error: string | null;
-  /** Re-fetch the file list from disk. */
+  /** Refresh the root and currently expanded directories only. */
   refresh: () => void;
+  /** Refresh one visible directory. */
+  refreshDir: (dirPath: string) => Promise<void>;
+  /** Load a directory when the user opens it. */
+  loadDir: (dirPath: string, options?: { force?: boolean }) => Promise<void>;
+}
+
+interface ReplaceResult {
+  nodes: FileTreeNode[];
+  changed: boolean;
+}
+
+function normalizeDirPath(dirPath: string): string {
+  return dirPath.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+}
+
+function dirname(p: string): string {
+  const normalized = normalizeDirPath(p);
+  const idx = normalized.lastIndexOf("/");
+  return idx === -1 ? "" : normalized.slice(0, idx);
+}
+
+function replaceDirectoryChildren(
+  nodes: FileTreeNode[],
+  dirPath: string,
+  children: FileTreeNode[],
+): ReplaceResult {
+  let changed = false;
+  const next = nodes.map((node) => {
+    if (node.type !== "directory") return node;
+    if (node.path === dirPath) {
+      changed = true;
+      return { ...node, children };
+    }
+    if (dirPath.startsWith(`${node.path}/`) && node.children) {
+      const result = replaceDirectoryChildren(node.children, dirPath, children);
+      if (result.changed) {
+        changed = true;
+        return { ...node, children: result.nodes };
+      }
+    }
+    return node;
+  });
+  return { nodes: next, changed };
 }
 
 /**
- * Fetches the project file list via IPC and builds a nested tree.
- * Re-fetches when `cwd` changes. Returns loading/error states.
+ * Fetches Project Files lazily. Only the root and user-expanded directories are
+ * loaded. Search and full-tree statistics stay disabled until we have a stable
+ * incremental index instead of a whole-project scan.
  */
 export function useProjectFiles(
   cwd: string | undefined,
   enabled: boolean,
+  expandedDirs: Set<string>,
 ): UseProjectFilesReturn {
   const [tree, setTree] = useState<FileTreeNode[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Track the latest fetch to avoid stale responses
-  const fetchIdRef = useRef(0);
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const fileTreeWorkerRef = useRef<Worker | null>(null);
+  const cwdRef = useRef(cwd);
+  const enabledRef = useRef(enabled);
+  const expandedDirsRef = useRef(expandedDirs);
+  const treeRef = useRef<FileTreeNode[] | null>(null);
+  const loadedDirsRef = useRef(new Set<string>());
+  const loadingDirsRef = useRef(new Set<string>());
+  const loadingPromisesRef = useRef(new Map<string, Promise<void>>());
+  const versionRef = useRef(0);
 
-  const fetchFiles = useCallback(async (dir: string) => {
-    const id = ++fetchIdRef.current;
-    setLoading(true);
-    setError(null);
+  useEffect(() => {
+    cwdRef.current = cwd;
+    enabledRef.current = enabled;
+    expandedDirsRef.current = expandedDirs;
+  }, [cwd, enabled, expandedDirs]);
 
-    try {
-      const result = await window.claude.files.listAll(dir);
-      // Guard against stale response (cwd changed while fetching)
-      if (id !== fetchIdRef.current) return;
-      let nextTree: FileTreeNode[];
-      try {
-        nextTree = await runWorkerTask<{ files: string[] }, FileTreeNode[]>(
-          fileTreeWorkerRef,
-          () => new Worker(new URL("../workers/file-tree.worker.ts", import.meta.url), { type: "module" }),
-          { files: result.files },
-        );
-      } catch {
-        nextTree = buildFileTree(result.files);
-      }
-      if (id !== fetchIdRef.current) return;
-      setTree(nextTree);
-    } catch (err) {
-      if (id !== fetchIdRef.current) return;
-      captureException(err instanceof Error ? err : new Error(String(err)), { label: "FILE_LIST_ERR" });
-      setError(err instanceof Error ? err.message : "Failed to list files");
-      setTree(null);
-    } finally {
-      if (id === fetchIdRef.current) {
-        setLoading(false);
-      }
+  const loadDir = useCallback(async (dirPath: string, options?: { force?: boolean }) => {
+    const currentCwd = cwdRef.current;
+    if (!currentCwd || !enabledRef.current) return;
+
+    const requestVersion = versionRef.current;
+    const normalizedDir = normalizeDirPath(dirPath);
+    if (normalizedDir !== "" && !treeRef.current) {
+      await loadDir("", { force: true });
+      if (requestVersion !== versionRef.current || !treeRef.current) return;
     }
-  }, []);
-
-  useEffect(() => {
-    return () => terminateWorker(fileTreeWorkerRef);
-  }, []);
-
-  useEffect(() => {
-    if (!cwd || !enabled) {
-      fetchIdRef.current += 1;
-      setTree(null);
-      setLoading(false);
-      setError(null);
+    if (!options?.force && loadedDirsRef.current.has(normalizedDir)) return;
+    const existingLoad = loadingPromisesRef.current.get(normalizedDir);
+    if (existingLoad) {
+      await existingLoad;
       return;
     }
 
-    fetchFiles(cwd);
-  }, [cwd, enabled, fetchFiles]);
+    const loadPromise = (async () => {
+      loadingDirsRef.current.add(normalizedDir);
+      setLoading(true);
+      setError(null);
 
-  const scheduleRefresh = useCallback((dir: string) => {
-    clearTimeout(refreshTimerRef.current);
-    refreshTimerRef.current = setTimeout(() => {
-      void fetchFiles(dir);
-    }, 150);
-  }, [fetchFiles]);
+      try {
+        const result = await window.claude.files.listDir(currentCwd, normalizedDir);
+        if (requestVersion !== versionRef.current || currentCwd !== cwdRef.current || !enabledRef.current) return;
+        if (result.error) throw new Error(result.error);
+
+        if (normalizedDir === "") {
+          loadedDirsRef.current.add(normalizedDir);
+          treeRef.current = result.entries;
+          setTree(result.entries);
+          return;
+        }
+
+        const currentTree = treeRef.current;
+        if (!currentTree) return;
+        const resultTree = replaceDirectoryChildren(currentTree, normalizedDir, result.entries);
+        if (resultTree.changed) {
+          treeRef.current = resultTree.nodes;
+          setTree(resultTree.nodes);
+          loadedDirsRef.current.add(normalizedDir);
+        }
+      } catch (err) {
+        if (requestVersion !== versionRef.current) return;
+        captureException(err instanceof Error ? err : new Error(String(err)), { label: "FILE_LIST_DIR_ERR" });
+        setError(err instanceof Error ? err.message : "Failed to list files");
+      } finally {
+        if (requestVersion !== versionRef.current) return;
+        loadingDirsRef.current.delete(normalizedDir);
+        loadingPromisesRef.current.delete(normalizedDir);
+        if (loadingDirsRef.current.size === 0) {
+          setLoading(false);
+        }
+      }
+    })();
+    loadingPromisesRef.current.set(normalizedDir, loadPromise);
+    await loadPromise;
+  }, []);
+
+  useEffect(() => {
+    versionRef.current += 1;
+    loadedDirsRef.current.clear();
+    loadingDirsRef.current.clear();
+    loadingPromisesRef.current.clear();
+    treeRef.current = null;
+    setTree(null);
+    setError(null);
+    setLoading(false);
+    if (cwd && enabled) {
+      void loadDir("", { force: true });
+    }
+  }, [cwd, enabled, loadDir]);
+
+  const expandedDirList = useMemo(
+    () => Array.from(expandedDirs).map(normalizeDirPath).sort((a, b) => a.split("/").length - b.split("/").length),
+    [expandedDirs],
+  );
+
+  useEffect(() => {
+    if (!cwd || !enabled) return;
+    let cancelled = false;
+    void (async () => {
+      for (const dir of expandedDirList) {
+        if (cancelled) return;
+        await loadDir(dir);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cwd, enabled, expandedDirList, loadDir]);
+
+  const refreshDir = useCallback(async (dirPath: string) => {
+    await loadDir(dirPath, { force: true });
+  }, [loadDir]);
+
+  const refresh = useCallback(() => {
+    const openDirs = new Set(["", ...Array.from(expandedDirsRef.current).map(normalizeDirPath)]);
+    for (const dir of openDirs) {
+      void loadDir(dir, { force: true });
+    }
+  }, [loadDir]);
 
   useEffect(() => {
     if (!cwd || !enabled) return;
 
     void window.claude.files.watch(cwd);
-    const unsubscribe = window.claude.files.onChanged(({ cwd: changedCwd }) => {
+    const unsubscribe = window.claude.files.onChanged(({ cwd: changedCwd, path, paths }) => {
       if (changedCwd !== cwd) return;
-      scheduleRefresh(cwd);
-    });
-
-    const refreshOnFocus = () => scheduleRefresh(cwd);
-    const refreshOnVisible = () => {
-      if (document.visibilityState === "visible") {
-        scheduleRefresh(cwd);
+      const openDirs = new Set(["", ...Array.from(expandedDirsRef.current).map(normalizeDirPath)]);
+      const changedPaths = paths?.length ? paths : (typeof path === "string" ? [path] : []);
+      const refreshDirs = new Set<string>();
+      if (changedPaths.length === 0) {
+        for (const dir of openDirs) {
+          refreshDirs.add(dir);
+        }
+      } else {
+        for (const changedPath of changedPaths) {
+          const parentDir = dirname(changedPath);
+          if (openDirs.has(parentDir)) {
+            refreshDirs.add(parentDir);
+          }
+        }
       }
-    };
-
-    window.addEventListener("focus", refreshOnFocus);
-    document.addEventListener("visibilitychange", refreshOnVisible);
+      for (const dir of refreshDirs) {
+        void loadDir(dir, { force: true });
+      }
+    });
 
     return () => {
       unsubscribe();
-      window.removeEventListener("focus", refreshOnFocus);
-      document.removeEventListener("visibilitychange", refreshOnVisible);
-      clearTimeout(refreshTimerRef.current);
       void window.claude.files.unwatch(cwd);
     };
-  }, [cwd, enabled, scheduleRefresh]);
+  }, [cwd, enabled, loadDir]);
 
-  const refresh = useCallback(() => {
-    if (cwd && enabled) fetchFiles(cwd);
-  }, [cwd, enabled, fetchFiles]);
-
-  return { tree, loading, error, refresh };
+  return { tree, loading, error, refresh, refreshDir, loadDir };
 }

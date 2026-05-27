@@ -172,6 +172,7 @@ contextBridge.exposeInMainWorld("claude", {
   files: {
     list: (cwd: string) => ipcRenderer.invoke("files:list", cwd),
     listAll: (cwd: string) => ipcRenderer.invoke("files:list-all", cwd),
+    listDir: (cwd: string, path?: string) => ipcRenderer.invoke("files:list-dir", { cwd, path }),
     watch: (cwd: string) => ipcRenderer.invoke("files:watch", cwd),
     unwatch: (cwd: string) => ipcRenderer.invoke("files:unwatch", cwd),
     calculateDeepSize: (cwd: string, paths: string[]) => ipcRenderer.invoke("files:calculate-deep-size", { cwd, paths }),
