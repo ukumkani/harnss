@@ -1,4 +1,5 @@
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { execFile } from "child_process";
 import { promisify } from "util";
@@ -46,6 +47,81 @@ agents.set(BUILTIN_CLAUDE.id, BUILTIN_CLAUDE);
 agents.set(BUILTIN_CODEX.id, BUILTIN_CODEX);
 agents.set(BUILTIN_HERMES.id, BUILTIN_HERMES);
 
+function readHermesConfigValue(config: string, key: "default" | "provider"): string {
+  const match = config.match(new RegExp(`^\\s*${key}:\\s*([^\\n#]+)`, "m"));
+  return match?.[1]?.trim().replace(/^['"]|['"]$/g, "") ?? "";
+}
+
+function buildHermesConfigOptions(): ACPConfigOption[] {
+  const hermesHome = process.env.HERMES_HOME?.trim() || path.join(os.homedir(), ".hermes");
+  const configPath = path.join(hermesHome, "config.yaml");
+  const modelsPath = path.join(hermesHome, "models.json");
+  let currentModel = "";
+  let currentProvider = "";
+
+  try {
+    const config = fs.readFileSync(configPath, "utf-8");
+    currentModel = readHermesConfigValue(config, "default");
+    currentProvider = readHermesConfigValue(config, "provider");
+  } catch {
+    /* Hermes may not be configured yet. */
+  }
+
+  const options: Array<{ value: string; name: string; description?: string | null }> = [];
+  try {
+    const models = JSON.parse(fs.readFileSync(modelsPath, "utf-8")) as unknown;
+    if (Array.isArray(models)) {
+      for (const model of models) {
+        if (!model || typeof model !== "object") continue;
+        const entry = model as Record<string, unknown>;
+        const provider = String(entry.provider ?? "").trim();
+        const modelId = String(entry.model ?? "").trim();
+        if (!modelId) continue;
+        const value = provider ? `${provider}:${modelId}` : modelId;
+        if (options.some((option) => option.value === value)) continue;
+        const name = String(entry.name ?? "").trim() || modelId;
+        options.push({
+          value,
+          name,
+          description: provider ? `Provider: ${provider}` : null,
+        });
+      }
+    }
+  } catch {
+    /* No local Hermes model list yet. */
+  }
+
+  const currentValue = currentProvider && currentModel
+    ? `${currentProvider}:${currentModel}`
+    : currentModel;
+  if (currentValue && !options.some((option) => option.value === currentValue)) {
+    options.unshift({
+      value: currentValue,
+      name: currentModel || currentValue,
+      description: currentProvider ? `Provider: ${currentProvider} • current` : "current",
+    });
+  }
+
+  if (options.length === 0) return [];
+  return [{
+    id: "model",
+    name: "Model",
+    category: "model",
+    type: "select",
+    currentValue: currentValue || options[0].value,
+    options,
+  }];
+}
+
+function hydrateBuiltInAgentDefaults(): void {
+  const hermes = agents.get(BUILTIN_HERMES.id);
+  if (!hermes || (hermes.cachedConfigOptions?.length ?? 0) > 0) return;
+  const configOptions = buildHermesConfigOptions();
+  if (configOptions.length > 0) {
+    hermes.cachedConfigOptions = configOptions;
+  }
+}
+
 function getConfigPath(): string {
   return path.join(app.getPath("userData"), "openacpui-data", "agents.json");
 }
@@ -66,6 +142,7 @@ export function loadUserAgents(): void {
   } catch {
     /* no config yet */
   }
+  hydrateBuiltInAgentDefaults();
 }
 
 export function getAgent(id: string): InstalledAgent | undefined {
@@ -73,6 +150,7 @@ export function getAgent(id: string): InstalledAgent | undefined {
 }
 
 export function listAgents(): InstalledAgent[] {
+  hydrateBuiltInAgentDefaults();
   return Array.from(agents.values());
 }
 

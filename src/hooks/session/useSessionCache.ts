@@ -34,6 +34,7 @@ export function useSessionCache({
     setStartOptions,
     setInitialMessages,
     setInitialMeta,
+    setInitialConfigOptions,
     setInitialPermission,
     setInitialRawAcpPermission,
     setActiveSessionId,
@@ -93,6 +94,7 @@ export function useSessionCache({
       });
       setInitialPermission(null);
       setInitialRawAcpPermission(null);
+      setInitialConfigOptions([]);
       setActiveSessionId(id);
       setDraftProjectId(null);
       setSessions((prev) =>
@@ -113,9 +115,20 @@ export function useSessionCache({
         })),
       );
     });
+    if (data.engine === "acp" && data.agentId) {
+      void window.claude.agents.list().then((agents) => {
+        const agent = agents.find((entry) => entry.id === data.agentId);
+        if (agent?.cachedConfigOptions?.length) {
+          setInitialConfigOptions(agent.cachedConfigOptions);
+        }
+      }).catch(() => {
+        /* Agent options are a UI convenience; session loading should continue. */
+      });
+    }
   }, [
     setActiveSessionId,
     setDraftProjectId,
+    setInitialConfigOptions,
     setInitialMessages,
     setInitialMeta,
     setInitialPermission,

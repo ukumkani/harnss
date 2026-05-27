@@ -504,9 +504,19 @@ export function useSessionManager(
     if (!session) {
       return null;
     }
+    const loadCachedAcpConfigOptions = async () => {
+      if (session.engine !== "acp" || !session.agentId) return [];
+      try {
+        const agents = await window.claude.agents.list();
+        return agents.find((agent) => agent.id === session.agentId)?.cachedConfigOptions ?? [];
+      } catch {
+        return [];
+      }
+    };
 
     const backgroundState = backgroundStoreRef.current.get(sessionId);
     if (backgroundState) {
+      const initialConfigOptions = await loadCachedAcpConfigOptions();
       return {
         session,
         initialMessages: backgroundState.messages,
@@ -519,7 +529,7 @@ export function useSessionManager(
           isCompacting: backgroundState.isCompacting,
         },
         initialPermission: backgroundState.pendingPermission,
-        initialConfigOptions: [],
+        initialConfigOptions,
         initialSlashCommands: backgroundState.slashCommands ?? [],
         initialRawAcpPermission: backgroundState.rawAcpPermission,
       };
@@ -529,6 +539,7 @@ export function useSessionManager(
     if (!persistedSession) {
       return null;
     }
+    const initialConfigOptions = await loadCachedAcpConfigOptions();
 
     return {
       session,
@@ -541,7 +552,7 @@ export function useSessionManager(
         contextUsage: persistedSession.contextUsage ?? null,
       },
       initialPermission: null,
-      initialConfigOptions: [],
+      initialConfigOptions,
       initialSlashCommands: [],
       initialRawAcpPermission: null,
     };
