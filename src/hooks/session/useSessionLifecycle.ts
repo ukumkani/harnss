@@ -223,7 +223,19 @@ export function useSessionLifecycle({
         return;
       }
 
-      await prepareGitBranchForTask();
+      let taskPrepared = false;
+      const prepareTaskOnce = async () => {
+        if (taskPrepared) return;
+        taskPrepared = true;
+        await prepareGitBranchForTask();
+      };
+      const waitForSubmittedTurnPaint = () => new Promise<void>((resolve) => {
+        if (typeof requestAnimationFrame === "function") {
+          requestAnimationFrame(() => resolve());
+          return;
+        }
+        setTimeout(resolve, 0);
+      });
 
       if (activeId === DRAFT_ID) {
         const draftEngine = refs.startOptionsRef.current.engine ?? "claude";
@@ -234,6 +246,9 @@ export function useSessionLifecycle({
           const userMsg = createUserMessage(text, images, displayText);
           acp.setMessages((prev) => [...prev, userMsg]);
           acp.setIsProcessing(true);
+
+          await waitForSubmittedTurnPaint();
+          await prepareTaskOnce();
 
           const sessionId = await materializeDraft(text, images, displayText);
           if (!sessionId) {
@@ -265,15 +280,21 @@ export function useSessionLifecycle({
 
         if (draftEngine === "codex") {
           trackMessageSent();
-          const sessionId = await materializeDraft(text, images, displayText);
-          if (!sessionId) return;
-          await new Promise((resolve) => setTimeout(resolve, 50));
-
           codex.setMessages((prev) => [
             ...prev,
             createUserMessage(text, images, displayText),
           ]);
           codex.setIsProcessing(true);
+
+          await waitForSubmittedTurnPaint();
+          await prepareTaskOnce();
+
+          const sessionId = await materializeDraft(text, images, displayText);
+          if (!sessionId) {
+            codex.setIsProcessing(false);
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 50));
 
           const codexSession = refs.sessionsRef.current.find((s) => s.id === sessionId);
           let codexCollabMode: CollaborationMode | undefined;
@@ -307,8 +328,21 @@ export function useSessionLifecycle({
 
         // Claude SDK path
         trackMessageSent();
+        const draftUserMessage = createUserMessage(text, images, displayText);
+        claude.setMessages((prev) => [
+          ...prev,
+          draftUserMessage,
+        ]);
+        claude.setIsProcessing(true);
+
+        await waitForSubmittedTurnPaint();
+        await prepareTaskOnce();
+
         const sessionId = await materializeDraft(text);
-        if (!sessionId) return;
+        if (!sessionId) {
+          claude.setIsProcessing(false);
+          return;
+        }
         await new Promise((resolve) => setTimeout(resolve, 50));
 
         {
@@ -323,12 +357,9 @@ export function useSessionLifecycle({
               ...prev,
               createSystemMessage(`Unable to send message: ${sendResult.error}`, true),
             ]);
+            claude.setIsProcessing(false);
             return;
           }
-          claude.setMessages((prev) => [
-            ...prev,
-            createUserMessage(text, images, displayText),
-          ]);
         }
         return;
       }
@@ -337,10 +368,18 @@ export function useSessionLifecycle({
         // ACP sessions: send through ACP hook if live
         if (refs.liveSessionIdsRef.current.has(activeId)) {
           trackMessageSent(activeId);
-          await acp.send(text, images, displayText);
+          acp.setMessages((prev) => [
+            ...prev,
+            createUserMessage(text, images, displayText),
+          ]);
+          acp.setIsProcessing(true);
+          await waitForSubmittedTurnPaint();
+          await prepareTaskOnce();
+          await acp.sendRaw(text, images);
           return;
         }
         // ACP session dead (app restarted) — attempt revival via session/load
+        await prepareTaskOnce();
         await reviveAcpSession(text, images, displayText);
         return;
       }
@@ -361,33 +400,58 @@ export function useSessionLifecycle({
             ]);
             return;
           }
-          await codex.send(text, images, displayText, codexCollabMode);
+          codex.setMessages((prev) => [
+            ...prev,
+            createUserMessage(text, images, displayText),
+          ]);
+          codex.setIsProcessing(true);
+          await waitForSubmittedTurnPaint();
+          await prepareTaskOnce();
+          const ok = await codex.sendRaw(text, images, codexCollabMode);
+          if (!ok) {
+            codex.setMessages((prev) => [
+              ...prev,
+              createSystemMessage("Unable to send message.", true),
+            ]);
+          }
           return;
         }
         // Codex session dead — attempt revival via thread/resume
+        await prepareTaskOnce();
         await reviveCodexSession(text, images);
         return;
       }
 
       // Claude SDK path
       if (refs.liveSessionIdsRef.current.has(activeId)) {
-        const sent = await claude.send(text, images, displayText);
+        const userMsg = createUserMessage(text, images, displayText);
+        claude.setMessages((prev) => [
+          ...prev,
+          userMsg,
+        ]);
+        claude.setIsProcessing(true);
+        await waitForSubmittedTurnPaint();
+        await prepareTaskOnce();
+        const sent = await claude.sendRaw(text, images);
         if (sent) return;
+        claude.setMessages((prev) => prev.filter((message) => message.id !== userMsg.id));
         refs.liveSessionIdsRef.current.delete(activeId);
       }
 
       if (refs.activeSessionIdRef.current !== DRAFT_ID) {
+        await prepareTaskOnce();
         await reviveSession(text, images, displayText);
         return;
       }
     },
     [
-      claude.send,
+      claude.sendRaw,
       claude.setMessages,
-      acp.send,
+      claude.setIsProcessing,
+      acp.sendRaw,
       acp.setMessages,
       acp.setIsProcessing,
-      codex.send,
+      codex.sendRaw,
       codex.setMessages,
       codex.setIsProcessing,
       materializeDraft,

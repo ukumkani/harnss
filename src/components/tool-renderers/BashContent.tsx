@@ -1,8 +1,6 @@
 import { useMemo } from "react";
 import { ChevronsUpDown } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import type { UIMessage } from "@/types";
 import { getLanguageFromPath, guessLanguage, INLINE_HIGHLIGHT_STYLE, INLINE_CODE_TAG_STYLE } from "@/lib/languages";
 import { useResolvedTheme } from "@/hooks/useTheme";
@@ -10,6 +8,7 @@ import { formatBashResult } from "@/components/lib/tool-formatting";
 import { useChatPersistedState } from "@/components/chat-ui-state";
 import { renderAnsi, stripAnsi } from "@/lib/ansi";
 import { ToolCodeBlock } from "./ToolCodeBlock";
+import { CODE_BLOCK_SURFACE_CLASS, getCodeSyntaxTheme } from "@/components/lib/code-block-style";
 
 const MAX_OUTPUT_LINES = 200;
 const COMMAND_CODE_TAG_STYLE = {
@@ -32,7 +31,7 @@ export function BashContent({ message }: { message: UIMessage }) {
   const command = message.toolInput?.command;
   const result = message.toolResult;
   const resolvedTheme = useResolvedTheme();
-  const syntaxStyle = resolvedTheme === "dark" ? oneDark : oneLight;
+  const syntaxStyle = getCodeSyntaxTheme(resolvedTheme);
   const [expanded, setExpanded] = useChatPersistedState(`bash:${message.id}`, false);
 
   const formattedResult = useMemo(() => (result ? formatBashResult(result) : ""), [result]);
@@ -58,7 +57,7 @@ export function BashContent({ message }: { message: UIMessage }) {
 
   return (
     <div className="text-xs">
-      <div className="rounded-md bg-foreground/[0.05] font-mono text-[11px] text-foreground whitespace-pre-wrap wrap-break-word">
+      <div className={`rounded-md ${CODE_BLOCK_SURFACE_CLASS} font-mono text-[12px] text-foreground whitespace-pre-wrap wrap-break-word`}>
         {/* Command */}
         {!!command && (
           <div className="px-3 py-2">

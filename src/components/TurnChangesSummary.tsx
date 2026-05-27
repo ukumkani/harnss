@@ -1,6 +1,5 @@
 import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import { FileDiff, Pencil, Plus, ChevronRight, ChevronDown, Loader2 } from "lucide-react";
-import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { DiffViewer } from "./DiffViewer";
 import { OpenFileButton } from "./OpenFileButton";
 import { UnifiedPatchViewer } from "./UnifiedPatchViewer";
@@ -8,8 +7,7 @@ import type { TurnSummary, FileChange } from "@/lib/chat/turn-changes";
 import { useChatPersistedState } from "@/components/chat-ui-state";
 import { CHAT_ROW_CLASS, CHAT_ROW_WIDTH_CLASS } from "@/components/lib/chat-layout";
 import { getLanguageFromPath } from "@/lib/languages";
-import { highlightToLines } from "@/lib/syntax-highlight";
-import { useResolvedTheme } from "@/hooks/useTheme";
+import { ToolCodeBlock } from "@/components/tool-renderers/ToolCodeBlock";
 
 // ── Color/icon mapping (matches FilesPanel conventions) ──
 
@@ -19,18 +17,12 @@ const CHANGE_COLOR = { modified: "text-amber-400", created: "text-emerald-400" }
 // ── Inline file change viewer ──
 
 const CurrentFilePreview = memo(function CurrentFilePreview({ filePath }: { filePath: string }) {
-  const resolvedTheme = useResolvedTheme();
   const [state, setState] = useState<{
     content: string;
     loading: boolean;
     error: string | null;
   }>({ content: "", loading: true, error: null });
-  const highlightedLines = useMemo(() => {
-    if (!state.content) return [];
-    const language = getLanguageFromPath(filePath);
-    const style = resolvedTheme === "dark" ? oneDark : oneLight;
-    return highlightToLines(state.content, language, style);
-  }, [filePath, resolvedTheme, state.content]);
+  const language = useMemo(() => getLanguageFromPath(filePath), [filePath]);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,15 +76,7 @@ const CurrentFilePreview = memo(function CurrentFilePreview({ filePath }: { file
   }
 
   return (
-    <pre className="max-h-[28rem] overflow-auto bg-muted/55 px-3 py-2 font-mono text-[12px] leading-[1.55] text-foreground/85 dark:bg-foreground/[0.06]">
-      <code>
-        {highlightedLines.map((line, index) => (
-          <div key={index} className="min-h-[1.55em] whitespace-pre">
-            {line}
-          </div>
-        ))}
-      </code>
-    </pre>
+    <ToolCodeBlock code={state.content} language={language} maxHeightClassName="max-h-[28rem]" />
   );
 });
 

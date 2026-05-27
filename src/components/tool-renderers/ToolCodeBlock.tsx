@@ -1,8 +1,12 @@
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import type { CSSProperties } from "react";
 import { useResolvedTheme } from "@/hooks/useTheme";
-import { INLINE_CODE_TAG_STYLE } from "@/lib/languages";
+import {
+  CODE_BLOCK_CODE_TAG_STYLE,
+  CODE_BLOCK_PRE_STYLE,
+  CODE_BLOCK_SURFACE_CLASS,
+  getCodeSyntaxTheme,
+} from "@/components/lib/code-block-style";
 
 interface ToolCodeBlockProps {
   code: string;
@@ -11,19 +15,13 @@ interface ToolCodeBlockProps {
 }
 
 const TOOL_CODE_STYLE: CSSProperties = {
-  margin: 0,
-  padding: "8px 12px",
-  background: "transparent",
-  textShadow: "none",
-  fontSize: "11px",
-  lineHeight: "1.55",
+  ...CODE_BLOCK_PRE_STYLE,
   whiteSpace: "pre-wrap",
   overflowWrap: "anywhere",
 };
 
 const CODE_TAG_STYLE = {
-  ...INLINE_CODE_TAG_STYLE,
-  color: "var(--foreground)",
+  ...CODE_BLOCK_CODE_TAG_STYLE,
   whiteSpace: "pre-wrap",
   overflowWrap: "anywhere",
 };
@@ -34,10 +32,10 @@ export function ToolCodeBlock({
   maxHeightClassName = "max-h-48",
 }: ToolCodeBlockProps) {
   const resolvedTheme = useResolvedTheme();
-  const syntaxStyle = resolvedTheme === "dark" ? oneDark : oneLight;
+  const syntaxStyle = getCodeSyntaxTheme(resolvedTheme);
 
   return (
-    <div className={`${maxHeightClassName} overflow-auto rounded-md bg-foreground/[0.05]`}>
+    <div className={`${maxHeightClassName} overflow-auto rounded-md ${CODE_BLOCK_SURFACE_CLASS}`}>
       <SyntaxHighlighter
         language={language}
         style={syntaxStyle}
