@@ -779,8 +779,8 @@ html.platform-win32 .drag-region {
 .chat-composer-surface {
   border-color: color-mix(in oklch, var(--foreground) 49%, transparent);
   box-shadow:
-    0 8px 18px color-mix(in oklch, var(--foreground) 45%, transparent),
-    0 1px 4px color-mix(in oklch, var(--foreground) 34%, transparent);
+    0 8px 18px oklch(0.76 0 0 / 0.32),
+    0 1px 4px oklch(0.76 0 0 / 0.26);
 }
 
 .permission-prompt-surface {
@@ -792,8 +792,8 @@ html.platform-win32 .drag-region {
   overflow-wrap: anywhere;
   border-color: var(--permission-prompt-red);
   box-shadow:
-    0 8px 18px color-mix(in oklch, var(--permission-prompt-red) 62%, transparent),
-    0 1px 4px color-mix(in oklch, var(--permission-prompt-red) 52%, transparent);
+    0 8px 18px oklch(0.76 0 0 / 0.32),
+    0 1px 4px oklch(0.76 0 0 / 0.26);
 }
 
 @keyframes chat-turn-processing-breathe {

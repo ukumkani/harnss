@@ -264,21 +264,47 @@ function extractEditedFilePath(result: Record<string, unknown>): string | null {
   return null;
 }
 
+type PermissionOption = {
+  optionId: string;
+  kind?: string;
+  name?: string;
+};
+
+function optionText(option: PermissionOption): string {
+  return [option.kind, option.optionId, option.name]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLowerCase();
+}
+
+function isRejectOption(option: PermissionOption): boolean {
+  return /(^|[^a-z])(reject|deny|decline|disallow|block|cancel|stop|no)($|[^a-z])/.test(optionText(option));
+}
+
+function isAllowOption(option: PermissionOption): boolean {
+  return /(^|[^a-z])(allow|approve|accept|grant|permit|confirm|continue|run|execute|apply|yes)($|[^a-z])/.test(optionText(option));
+}
+
 /**
  * Pick the best auto-response option from agent-provided permission options.
- * Returns the optionId to auto-select, or null if no matching allow option exists
- * (which means the request should fall through to the manual permission prompt).
+ * Allow All is a client-side force-allow policy: prefer explicit allow options,
+ * then fall back to any non-reject option for agents with non-standard option kinds.
  */
 export function pickAutoResponseOption(
-  options: Array<{ optionId: string; kind: string }>,
+  options: PermissionOption[] = [],
   behavior: "ask" | "auto_accept" | "allow_all",
 ): string | null {
   if (behavior === "ask") return null;
 
   if (behavior === "allow_all") {
-    // Prefer allow_always for blanket approval, fall back to allow_once
-    return (options.find(o => o.kind === "allow_always")
-         ?? options.find(o => o.kind === "allow_once"))?.optionId ?? null;
+    return (
+      options.find(o => o.kind === "allow_always")
+      ?? options.find(o => o.optionId === "allow_always")
+      ?? options.find(o => o.kind === "allow_once")
+      ?? options.find(o => o.optionId === "allow_once")
+      ?? options.find(isAllowOption)
+      ?? options.find(o => !isRejectOption(o))
+    )?.optionId ?? "allow_once";
   }
 
   if (behavior === "auto_accept") {

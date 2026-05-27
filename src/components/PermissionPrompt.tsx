@@ -47,6 +47,8 @@ const PERMISSION_PROMPT_OUTER_CLASS =
   `mx-auto w-full px-4 pb-4 ${BOTTOM_CHAT_MAX_WIDTH_CLASS}`;
 const PERMISSION_ACTION_BUTTON_CLASS =
   "h-[29px] gap-1.5 border border-[color:var(--foreground)] bg-transparent text-xs text-foreground shadow-none hover:bg-muted/40 hover:text-foreground";
+const PERMISSION_ALLOW_BUTTON_CLASS =
+  "h-[29px] gap-1.5 border border-[color:var(--foreground)] bg-[color:var(--foreground)] text-xs text-[color:var(--background)] shadow-none hover:bg-[color:var(--foreground)] hover:text-[color:var(--background)]";
 const PERMISSION_ACTION_ICON_BUTTON_CLASS =
   "h-[29px] border border-[color:var(--foreground)] bg-transparent px-1.5 text-foreground shadow-none hover:bg-muted/40 hover:text-foreground";
 
@@ -687,7 +689,7 @@ export function PermissionPrompt({
               size="sm"
               disabled={isSubmitting}
               onClick={() => void submit("allow")}
-              className={`${PERMISSION_ACTION_BUTTON_CLASS} ${scopeOptions.length > 0 ? "rounded-e-none" : ""}`}
+              className={`${PERMISSION_ALLOW_BUTTON_CLASS} ${scopeOptions.length > 0 ? "rounded-e-none" : ""}`}
             >
               <Check className="h-3.5 w-3.5" />
               {submittingAction === "allow" ? "Allowing..." : "Allow"}

@@ -11,6 +11,7 @@ import { useAcpAgentAutoUpdate } from "@/hooks/useAcpAgentAutoUpdate";
 import { useSplitView } from "@/hooks/useSplitView";
 import { useFolderManager } from "@/hooks/useFolderManager";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useSettingsStore } from "@/stores/settings-store";
 import { canonicalizeModelValue, resolveModelValue } from "@/lib/model-utils";
 import type { ToolId } from "@/types/tools";
 import type { AcpPermissionBehavior, EngineId, InstalledAgent } from "@/types";
@@ -27,9 +28,9 @@ export function useAppOrchestrator() {
   const splitView = useSplitView();
   const projectManager = useProjectManager();
   const spaceManager = useSpaceManager();
-  // Read ACP permission behavior early — it's a global setting (same localStorage key as useSettings)
-  // so we can read it before useSettings which depends on manager.activeSession for per-project scoping
-  const acpPermissionBehavior = (localStorage.getItem("harnss-acp-permission-behavior") ?? "ask") as AcpPermissionBehavior;
+  // Read ACP permission behavior early so the session manager can auto-respond to
+  // ACP prompts before the project-scoped settings adapter is initialized below.
+  const acpPermissionBehavior = useSettingsStore((s) => s.acpPermissionBehavior) as AcpPermissionBehavior;
   const manager = useSessionManager(
     projectManager.projects,
     acpPermissionBehavior,
