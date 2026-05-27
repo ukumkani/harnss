@@ -797,31 +797,31 @@ html.platform-win32 .drag-region {
 @keyframes chat-turn-processing-breathe {
   0%,
   100% {
-    background-color: color-mix(in oklch, oklch(0.68 0.18 145) 18%, transparent);
+    background-color: color-mix(in oklch, oklch(0.68 0.18 145) 12%, transparent);
   }
   50% {
-    background-color: color-mix(in oklch, oklch(0.68 0.18 145) 34%, transparent);
+    background-color: color-mix(in oklch, oklch(0.68 0.18 145) 48%, transparent);
   }
 }
 
 @keyframes chat-turn-permission-breathe {
   0%,
   100% {
-    background-color: color-mix(in oklch, oklch(0.62 0.2 25) 18%, transparent);
+    background-color: color-mix(in oklch, oklch(0.62 0.2 25) 12%, transparent);
   }
   50% {
-    background-color: color-mix(in oklch, oklch(0.62 0.2 25) 34%, transparent);
+    background-color: color-mix(in oklch, oklch(0.62 0.2 25) 48%, transparent);
   }
 }
 
 .chat-user-turn-processing {
-  background-color: color-mix(in oklch, oklch(0.68 0.18 145) 24%, transparent) !important;
-  animation: chat-turn-processing-breathe 1.8s ease-in-out infinite;
+  background-color: color-mix(in oklch, oklch(0.68 0.18 145) 30%, transparent) !important;
+  animation: chat-turn-processing-breathe 1.45s ease-in-out infinite;
 }
 
 .chat-user-turn-permission {
-  background-color: color-mix(in oklch, oklch(0.62 0.2 25) 24%, transparent) !important;
-  animation: chat-turn-permission-breathe 1.8s ease-in-out infinite;
+  background-color: color-mix(in oklch, oklch(0.62 0.2 25) 30%, transparent) !important;
+  animation: chat-turn-permission-breathe 1.45s ease-in-out infinite;
 }
 
 .prose-sm {
