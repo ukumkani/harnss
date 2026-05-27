@@ -1,6 +1,6 @@
 import { ipcMain, shell } from "electron";
 import type { BrowserWindow } from "electron";
-import { execFile } from "child_process";
+import { execFile, spawn } from "child_process";
 import path from "path";
 import fs from "fs";
 import { promises as fsPromises } from "fs";
@@ -106,6 +106,13 @@ async function listProjectFiles(cwd: string): Promise<string[]> {
 /** Dirs to skip in the full filesystem walk (VCS internals + massive dependency dirs). */
 const EXPLORER_SKIP = new Set([".git", ".hg", ".svn", "node_modules"]);
 
+interface FileListDirEntry {
+  name: string;
+  path: string;
+  type: "file" | "directory";
+  extension?: string;
+}
+
 // ── Recursive file watcher ──
 // Uses a single fs.watch(cwd, { recursive: true }) per project root.
 // macOS (FSEvents) and Windows (ReadDirectoryChangesW) handle this natively
@@ -115,6 +122,7 @@ const EXPLORER_SKIP = new Set([".git", ".hg", ".svn", "node_modules"]);
 interface ProjectWatchState {
   refCount: number;
   watcher: fs.FSWatcher;
+  pendingPaths: Set<string>;
   notifyTimer?: ReturnType<typeof setTimeout>;
 }
 
@@ -132,20 +140,27 @@ function startProjectWatcher(
 
   const watcher = fs.watch(cwd, { recursive: true, persistent: false }, (_eventType, filename) => {
     // Ignore changes in directories we don't care about (node_modules, .git, etc.)
+    const relPath = typeof filename === "string" ? filename.split(path.sep).join("/") : undefined;
     if (filename) {
       const firstSegment = filename.split(path.sep)[0];
       if (ALWAYS_SKIP.has(firstSegment) || firstSegment.startsWith(".")) return;
     }
 
     const state = projectWatchers.get(cwd);
-    if (!state || state.notifyTimer) return;
+    if (!state) return;
+    if (relPath) {
+      state.pendingPaths.add(relPath);
+    }
+    if (state.notifyTimer) return;
 
     // Debounce: coalesce rapid changes into a single notification
     state.notifyTimer = setTimeout(() => {
       const current = projectWatchers.get(cwd);
       if (!current) return;
       current.notifyTimer = undefined;
-      safeSend(getMainWindow, "files:changed", { cwd });
+      const paths = Array.from(current.pendingPaths);
+      current.pendingPaths.clear();
+      safeSend(getMainWindow, "files:changed", { cwd, path: paths[0], paths });
     }, 200);
   });
 
@@ -154,7 +169,7 @@ function startProjectWatcher(
     stopProjectWatcher(cwd);
   });
 
-  projectWatchers.set(cwd, { refCount: 1, watcher });
+  projectWatchers.set(cwd, { refCount: 1, watcher, pendingPaths: new Set() });
 }
 
 function stopProjectWatcher(cwd: string): void {
@@ -174,7 +189,59 @@ function stopProjectWatcher(cwd: string): void {
  * Only skips VCS internals and node_modules (too massive).
  * Used by the "Project Files" explorer panel.
  */
-async function listAllFiles(cwd: string, maxFiles?: number): Promise<string[]> {
+function listAllFilesWithFind(cwd: string, maxFiles?: number): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const pruneNames = Array.from(EXPLORER_SKIP).flatMap((name, index) => (
+      index === 0 ? ["-name", name] : ["-o", "-name", name]
+    ));
+    const args = [".", "(", ...pruneNames, ")", "-type", "d", "-prune", "-o", "-type", "f", "-print0"];
+    const child = spawn("find", args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
+    const files: string[] = [];
+    let pending = Buffer.alloc(0);
+    let stderr = "";
+    let stoppedAfterLimit = false;
+
+    const pushEntry = (raw: string) => {
+      if (!raw) return;
+      const rel = raw.startsWith("./") ? raw.slice(2) : raw;
+      if (!rel) return;
+      files.push(rel);
+      if (maxFiles != null && files.length >= maxFiles && !stoppedAfterLimit) {
+        stoppedAfterLimit = true;
+        child.kill();
+      }
+    };
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      pending = Buffer.concat([pending, chunk]);
+      let start = 0;
+      for (let i = 0; i < pending.length; i++) {
+        if (pending[i] !== 0) continue;
+        pushEntry(pending.subarray(start, i).toString("utf8"));
+        start = i + 1;
+      }
+      pending = pending.subarray(start);
+    });
+
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString("utf8");
+    });
+
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (pending.length > 0) {
+        pushEntry(pending.toString("utf8"));
+      }
+      if (code !== 0 && !stoppedAfterLimit) {
+        reject(new Error(stderr.trim() || `find exited with code ${code}`));
+        return;
+      }
+      resolve(files.sort());
+    });
+  });
+}
+
+async function listAllFilesWalk(cwd: string, maxFiles?: number): Promise<string[]> {
   const files: string[] = [];
   const queue: string[] = [""];
   let visitedDirs = 0;
@@ -208,6 +275,56 @@ async function listAllFiles(cwd: string, maxFiles?: number): Promise<string[]> {
   }
 
   return files.sort();
+}
+
+async function listAllFiles(cwd: string, maxFiles?: number): Promise<string[]> {
+  try {
+    return await listAllFilesWithFind(cwd, maxFiles);
+  } catch (err) {
+    reportError("FILES:LIST_ALL_FIND_ERR", err, { cwd });
+    return await listAllFilesWalk(cwd, maxFiles);
+  }
+}
+
+function normalizeRelativeDir(relPath?: string): string {
+  return (relPath ?? "").replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+}
+
+function resolveProjectPath(cwd: string, relPath?: string): string {
+  const base = path.resolve(cwd);
+  const normalizedRel = normalizeRelativeDir(relPath);
+  const target = path.resolve(base, normalizedRel);
+  if (target !== base && !target.startsWith(base + path.sep)) {
+    throw new Error("Path outside project directory");
+  }
+  return target;
+}
+
+async function listDir(cwd: string, relPath?: string): Promise<FileListDirEntry[]> {
+  const normalizedRel = normalizeRelativeDir(relPath);
+  const abs = resolveProjectPath(cwd, normalizedRel);
+  const entries = await fsPromises.readdir(abs, { withFileTypes: true });
+  const dirs: FileListDirEntry[] = [];
+  const files: FileListDirEntry[] = [];
+
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      if (EXPLORER_SKIP.has(entry.name)) continue;
+      const entryPath = normalizedRel ? `${normalizedRel}/${entry.name}` : entry.name;
+      dirs.push({ name: entry.name, path: entryPath, type: "directory" });
+      continue;
+    }
+
+    if (!entry.isFile()) continue;
+    const entryPath = normalizedRel ? `${normalizedRel}/${entry.name}` : entry.name;
+    const extension = entry.name.includes(".") ? entry.name.split(".").pop()?.toLowerCase() : undefined;
+    files.push({ name: entry.name, path: entryPath, type: "file", ...(extension ? { extension } : {}) });
+  }
+
+  const cmp = (a: FileListDirEntry, b: FileListDirEntry) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  dirs.sort(cmp);
+  files.sort(cmp);
+  return [...dirs, ...files];
 }
 
 interface TreeNode {
@@ -368,6 +485,16 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
     } catch (err) {
       reportError("FILES:LIST_ALL_ERR", err);
       return { files: [], dirs: [] };
+    }
+  });
+
+  ipcMain.handle("files:list-dir", async (_event, { cwd, path: relPath }: { cwd: string; path?: string }) => {
+    try {
+      const entries = await listDir(cwd, relPath);
+      return { entries };
+    } catch (err) {
+      reportError("FILES:LIST_DIR_ERR", err, { cwd, path: relPath });
+      return { entries: [], error: err instanceof Error ? err.message : String(err) };
     }
   });
 

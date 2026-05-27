@@ -20,10 +20,12 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { BOTTOM_CHAT_MAX_WIDTH_CLASS } from "@/lib/layout/constants";
+import { getLanguageFromPath } from "@/lib/languages";
 import {
   buildAskUserQuestionResult,
   getAskUserQuestionKey,
 } from "@/lib/ask-user-question";
+import { ToolCodeBlock } from "@/components/tool-renderers/ToolCodeBlock";
 import type {
   PermissionRequest,
   PermissionUpdate,
@@ -136,6 +138,8 @@ function remapSuggestions(
 interface ToolDetail {
   label: string;
   value: string;
+  language?: string;
+  kind?: "code" | "text";
   meta?: string;
 }
 
@@ -147,7 +151,19 @@ function formatToolDetail(req: PermissionRequest): ToolDetail | null {
     return {
       label: "Command",
       value: input.command,
+      kind: "code",
+      language: "bash",
       ...(description ? { meta: description } : {}),
+    };
+  }
+  if (req.toolName === "Write" && typeof input.content === "string") {
+    const filePath = typeof input.file_path === "string" ? input.file_path : "";
+    return {
+      label: "Content",
+      value: input.content,
+      kind: "code",
+      language: getLanguageFromPath(filePath),
+      ...(filePath ? { meta: filePath } : {}),
     };
   }
   if (req.toolName === "Read" && typeof input.file_path === "string") {
@@ -171,9 +187,28 @@ function formatToolDetail(req: PermissionRequest): ToolDetail | null {
     return { label: "Target", value: input.file_path };
   }
   if (typeof input.command === "string") {
-    return { label: "Command", value: input.command };
+    return { label: "Command", value: input.command, kind: "code", language: "bash" };
   }
   return null;
+}
+
+function ToolDetailValue({ detail }: { detail: ToolDetail }) {
+  if (detail.kind === "code") {
+    return (
+      <ToolCodeBlock
+        code={detail.value}
+        language={detail.language ?? "text"}
+        maxHeightClassName="max-h-[28vh]"
+        hideHorizontalOverflow
+      />
+    );
+  }
+
+  return (
+    <div className="max-w-full overflow-x-hidden rounded-md bg-foreground/[0.04] px-3 py-2 font-mono text-[12px] text-foreground whitespace-pre-wrap wrap-break-word break-words">
+      {detail.value}
+    </div>
+  );
 }
 
 interface QuestionOption {
@@ -699,11 +734,9 @@ export function PermissionPrompt({
                 <p className="text-[10px] uppercase tracking-[0.12em] text-foreground/65">
                   {detail.label}
                 </p>
-                <div className="rounded-md bg-foreground/[0.04] px-3 py-2 font-mono text-[11px] text-foreground whitespace-pre-wrap wrap-break-word">
-                  {detail.value}
-                </div>
+                <ToolDetailValue detail={detail} />
                 {detail.meta && (
-                  <p className="text-[11px] text-foreground">
+                  <p className="text-[11px] text-foreground wrap-break-word break-words">
                     {detail.meta}
                   </p>
                 )}

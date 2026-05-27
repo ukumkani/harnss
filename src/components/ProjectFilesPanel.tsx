@@ -6,7 +6,6 @@ import {
   Folder,
   FolderOpen,
   RefreshCw,
-  Search,
   Copy,
   ClipboardCopy,
   ExternalLink,
@@ -30,10 +29,7 @@ import { PanelHeader } from "@/components/PanelHeader";
 import { OpenInEditorButton } from "./OpenInEditorButton";
 import { useProjectFiles } from "@/hooks/useProjectFiles";
 import {
-  filterTree,
   flattenTree,
-  countFiles,
-  collectDirPaths,
   type FileTreeNode,
 } from "@/lib/file-tree";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -97,45 +93,25 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
   revealFileVersion = 0,
   headerControls,
 }: ProjectFilesPanelProps) {
-  const { tree, loading, error, refresh } = useProjectFiles(cwd, enabled);
-
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(() => new Set());
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const { tree, loading, error, refresh, refreshDir, loadDir } = useProjectFiles(cwd, enabled, expandedDirs);
 
   // Inline creation state: { parentDir (relative), type }
   const [creating, setCreating] = useState<{ parentDir: string; type: "file" | "folder" } | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef(new Map<string, HTMLDivElement>());
 
-  // Debounce search input
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchQuery(value);
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setDebouncedQuery(value), 200);
-  }, []);
-
-  // Filter tree by search query
-  const filteredTree = useMemo(() => {
-    if (!tree) return null;
-    if (!debouncedQuery.trim()) return tree;
-    return filterTree(tree, debouncedQuery);
-  }, [tree, debouncedQuery]);
-
-  // When searching, auto-expand all matching directories
-  const effectiveExpanded = useMemo(() => {
-    if (!filteredTree || !debouncedQuery.trim()) return expandedDirs;
-    return collectDirPaths(filteredTree);
-  }, [filteredTree, debouncedQuery, expandedDirs]);
+  useEffect(() => {
+    setExpandedDirs(new Set());
+    setCreating(null);
+  }, [cwd]);
 
   // Flatten for rendering
   const flatItems = useMemo(() => {
-    if (!filteredTree) return [];
-    return flattenTree(filteredTree, effectiveExpanded);
-  }, [filteredTree, effectiveExpanded]);
+    if (!tree) return [];
+    return flattenTree(tree, expandedDirs);
+  }, [tree, expandedDirs]);
 
-  const totalFiles = useMemo(() => (tree ? countFiles(tree) : 0), [tree]);
   const revealRelativePath = useMemo(() => {
     if (!cwd || !revealFilePath) return null;
     const normalizedCwd = cwd.replace(/\/+$/, "");
@@ -153,7 +129,6 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
       dirs.push(current);
       current = dirname(current);
     }
-    if (dirs.length === 0) return;
     setExpandedDirs((prev) => {
       let changed = false;
       const next = new Set(prev);
@@ -165,7 +140,12 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
       }
       return changed ? next : prev;
     });
-  }, [revealFileVersion, revealRelativePath]);
+    void (async () => {
+      for (const dir of [...dirs].reverse()) {
+        await loadDir(dir, { force: true });
+      }
+    })();
+  }, [loadDir, revealFileVersion, revealRelativePath]);
 
   useEffect(() => {
     if (!revealRelativePath || revealFileVersion <= 0) return;
@@ -187,10 +167,11 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
         next.delete(path);
       } else {
         next.add(path);
+        void loadDir(path, { force: true });
       }
       return next;
     });
-  }, []);
+  }, [loadDir]);
 
   const handleFileOpen = useCallback(
     (node: FileTreeNode) => {
@@ -227,9 +208,9 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
 
     setCreating(null);
     if (result.ok) {
-      refresh();
+      void refreshDir(creating.parentDir);
     }
-  }, [cwd, creating, refresh]);
+  }, [cwd, creating, refreshDir]);
 
   const handleCancelCreate = useCallback(() => {
     setCreating(null);
@@ -252,9 +233,6 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
   return (
     <div className="flex h-full flex-col">
       <PanelHeader icon={FolderTree} label="Project Files" iconClass="text-teal-600/70 dark:text-teal-200/50">
-        {totalFiles > 0 && (
-          <span className="text-[10px] tabular-nums text-foreground/35">{totalFiles}</span>
-        )}
         <button
           type="button"
           onClick={refresh}
@@ -268,20 +246,7 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
         {headerControls}
       </PanelHeader>
 
-      {/* Search bar */}
-      <div className="flex items-center gap-1.5 px-3 py-1">
-        <Search className="h-3 w-3 shrink-0 text-foreground/25" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          placeholder="Search files…"
-          className="h-5 w-full bg-transparent text-[11px] text-foreground/75 outline-none placeholder:text-foreground/25"
-        />
-      </div>
-      <div className="mx-2">
-        <div className="h-px bg-foreground/[0.06]" />
-      </div>
+      {/* Search and full-tree file statistics are disabled while Project Files is lazy-loaded. */}
 
       {/* Tree content */}
       <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0">
@@ -300,9 +265,7 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
 
         {flatItems.length === 0 && !loading && !error && tree && (
           <div className="flex items-center justify-center py-6">
-            <p className="text-[10px] text-foreground/30">
-              {debouncedQuery ? `No matches for "${debouncedQuery}"` : "No files found"}
-            </p>
+            <p className="text-[10px] text-foreground/30">No files found</p>
           </div>
         )}
 
@@ -316,7 +279,7 @@ export const ProjectFilesPanel = memo(function ProjectFilesPanel({
               cwd={cwd}
               onToggleDir={toggleDir}
               onFileOpen={handleFileOpen}
-              onRefresh={refresh}
+              onRefresh={refreshDir}
               onRowMount={(path, element) => {
                 if (element) rowRefs.current.set(path, element);
                 else rowRefs.current.delete(path);
@@ -419,7 +382,7 @@ interface FileTreeRowProps {
   cwd: string;
   onToggleDir: (path: string) => void;
   onFileOpen: (node: FileTreeNode) => void;
-  onRefresh: () => void;
+  onRefresh: (dirPath: string) => void;
   onRowMount: (path: string, element: HTMLDivElement | null) => void;
   onStartCreate: (parentDir: string, type: "file" | "folder") => void;
   creatingUnder: "file" | "folder" | null;
@@ -525,18 +488,18 @@ const FileTreeRow = memo(function FileTreeRow({
     const newAbsPath = `${parentDir}/${trimmed}`;
     const result = await window.claude.renameFile(absolutePath, newAbsPath);
     if (result.ok) {
-      onRefresh();
+      onRefresh(dirname(node.path));
     }
-  }, [renameName, node.name, absolutePath, onRefresh]);
+  }, [renameName, node.name, node.path, absolutePath, onRefresh]);
 
   // ── Delete (trash) ──
 
   const handleTrash = useCallback(async () => {
     const result = await window.claude.trashItem(absolutePath);
     if (result.ok) {
-      onRefresh();
+      onRefresh(dirname(node.path));
     }
-  }, [absolutePath, onRefresh]);
+  }, [absolutePath, node.path, onRefresh]);
 
   // ── New file/folder ──
 
