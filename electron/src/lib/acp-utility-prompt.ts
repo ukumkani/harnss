@@ -27,7 +27,7 @@ export async function acpUtilityPrompt(
   // Create ephemeral utility session on the same connection (no extra process spawn)
   const utilitySession = await conn.newSession({ cwd: entry.cwd });
   const utilitySessionId = utilitySession.sessionId;
-  log("ACP_UTILITY", `Created utility session ${utilitySessionId.slice(0, 12)} on connection ${internalId.slice(0, 8)}`);
+  log("ACP_UTILITY", `Created utility session ${utilitySessionId.slice(0, 12)} on connection ${internalId.slice(0, 8)} parentAgentSession=${entry.acpSessionId?.slice(0, 12) ?? "none"}`);
 
   // Register so sessionUpdate callback knows to accumulate text, not forward to renderer
   if (!entry.utilitySessionIds) entry.utilitySessionIds = new Set();
