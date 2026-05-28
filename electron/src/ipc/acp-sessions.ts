@@ -435,7 +435,7 @@ async function createAcpConnection(
       if (entry) entry.eventCounter++;
       const count = entry?.eventCounter ?? 0;
       const summary = summarizeUpdate(update);
-      log("ACP_EVENT", `session=${internalId.slice(0, 8)} #${count} ${entry?.isReloading ? "[suppressed] " : ""}${summary}`);
+      log("ACP_EVENT", `session=${internalId.slice(0, 8)} agentSession=${acpSessionId.slice(0, 12)} #${count} ${entry?.isReloading ? "[suppressed] " : ""}${summary}`);
 
       // Full dump for tool calls and tool results
       const eventKind = update?.sessionUpdate as string;
@@ -485,6 +485,7 @@ async function createAcpConnection(
 
         log("ACP_PERMISSION_REQUEST", {
           session: internalId.slice(0, 8),
+          agentSession: acpSessionId.slice(0, 12),
           requestId,
           tool: toolCall?.title,
           kind: toolCall?.kind,
@@ -764,7 +765,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
     }
     const acpSessionId = session.acpSessionId;
 
-    log("ACP_SEND", `session=${sessionId.slice(0, 8)} text=${text.slice(0, 500)} images=${images?.length ?? 0}`);
+    log("ACP_SEND", `session=${sessionId.slice(0, 8)} agentSession=${acpSessionId.slice(0, 12)} text=${text.slice(0, 500)} images=${images?.length ?? 0}`);
 
     const prompt: ContentBlock[] = [];
     if (images) {
@@ -781,7 +782,7 @@ export function register(getMainWindow: () => BrowserWindow | null): void {
         prompt,
       });
 
-      log("ACP_TURN_COMPLETE", `session=${sessionId.slice(0, 8)} stopReason=${result.stopReason} usage=${JSON.stringify(result.usage ?? null)}`);
+      log("ACP_TURN_COMPLETE", `session=${sessionId.slice(0, 8)} agentSession=${acpSessionId.slice(0, 12)} stopReason=${result.stopReason} usage=${JSON.stringify(result.usage ?? null)}`);
 
       safeSend(getMainWindow,"acp:turn_complete", {
         _sessionId: sessionId,
