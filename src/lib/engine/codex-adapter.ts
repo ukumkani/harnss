@@ -124,6 +124,7 @@ export function codexItemToToolResult(item: CodexThreadItem): ToolUseResult | un
 
       return {
         type: "text",
+        status: item.status,
         stdout: lines.join("\n"),
         ...(item.exitCode != null ? { exitCode: item.exitCode } : {}),
         ...(item.durationMs != null ? { durationMs: item.durationMs } : {}),

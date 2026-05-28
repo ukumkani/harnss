@@ -179,6 +179,7 @@ export function handleCodexEvent(
       msg.toolResult = {
         ...(msg.toolResult ?? {}),
         type: "text",
+        status: "in_progress",
         stdout: existingStdout + delta,
       };
       break;

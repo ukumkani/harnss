@@ -657,6 +657,7 @@ export function useCodex({
                 toolResult: {
                   ...(m.toolResult ?? {}),
                   type: "text",
+                  status: "in_progress",
                   stdout: commandOutputRef.current.get(itemId)!,
                 },
               }

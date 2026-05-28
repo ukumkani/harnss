@@ -301,7 +301,7 @@ export const MessageBubble = memo(function MessageBubble({
                   currentTurnState === "processing" && "chat-user-turn-processing",
                   currentTurnState === "permission" && "chat-user-turn-permission",
                   message.isQueued && "bg-foreground/[0.09]",
-                  message.isQueued && "border border-dashed border-[color:var(--foreground)]",
+                  message.isQueued && "border border-solid border-foreground/70",
                 )}>
                   {message.images && message.images.length > 0 && (
                     <div className="mb-2 flex flex-wrap gap-2">

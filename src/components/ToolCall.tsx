@@ -30,6 +30,7 @@ interface ToolCallProps {
   showToolIcons?: boolean;
   coloredToolIcons?: boolean;
   disableCollapseAnimation?: boolean;
+  isConversationProcessing?: boolean;
 }
 
 export const ToolCall = memo(function ToolCall({
@@ -40,6 +41,7 @@ export const ToolCall = memo(function ToolCall({
   showToolIcons = true,
   coloredToolIcons = false,
   disableCollapseAnimation = false,
+  isConversationProcessing = false,
 }: ToolCallProps) {
   const normalizedToolName = (message.toolName ?? "").toLowerCase();
   const isTask = normalizedToolName === "task" || normalizedToolName === "agent";
@@ -54,6 +56,7 @@ export const ToolCall = memo(function ToolCall({
         showToolIcons={showToolIcons}
         coloredToolIcons={coloredToolIcons}
         disableCollapseAnimation={disableCollapseAnimation}
+        isConversationProcessing={isConversationProcessing}
       />
     );
 
@@ -74,6 +77,7 @@ export const ToolCall = memo(function ToolCall({
   prev.showToolIcons === next.showToolIcons &&
   prev.coloredToolIcons === next.coloredToolIcons &&
   prev.disableCollapseAnimation === next.disableCollapseAnimation &&
+  prev.isConversationProcessing === next.isConversationProcessing &&
   prev.message.toolInput === next.message.toolInput &&
   prev.message.toolResult === next.message.toolResult &&
   prev.message.toolError === next.message.toolError &&
@@ -90,6 +94,7 @@ interface RegularToolProps {
   showToolIcons: boolean;
   coloredToolIcons: boolean;
   disableCollapseAnimation: boolean;
+  isConversationProcessing: boolean;
 }
 
 const RegularTool = memo(function RegularTool({
@@ -99,6 +104,7 @@ const RegularTool = memo(function RegularTool({
   showToolIcons,
   coloredToolIcons,
   disableCollapseAnimation,
+  isConversationProcessing,
 }: RegularToolProps) {
   const isPlanTool = message.toolName === "ExitPlanMode";
   const isInteractive = isPlanTool || message.toolName === "AskUserQuestion";
@@ -111,19 +117,24 @@ const RegularTool = memo(function RegularTool({
     defaultExpanded,
   );
   const expanded = isPlanTool || storedExpanded;
+  const resultStatus = typeof message.toolResult?.status === "string"
+    ? message.toolResult.status.toLowerCase()
+    : "";
+  const isInProgressResult = resultStatus === "in_progress" || resultStatus === "inprogress";
   const hasResult = !!message.toolResult;
-  const isRunning = !hasResult;
   const isError = !!message.toolError;
+  const hasFinalResult = hasResult && !isInProgressResult && !(isConversationProcessing && !isError);
+  const isRunning = !isError && (!hasResult || isInProgressResult || isConversationProcessing);
   const Icon = getToolIcon(message.toolName ?? "");
   const summary = formatCompactSummary(message);
   const isEditOrWrite = message.toolName === "Edit" || message.toolName === "Write" || message.toolName === "NotebookEdit";
   const diffStats = useMemo(
-    () => (isEditOrWrite && hasResult ? getToolDiffStats(message) : null),
-    [isEditOrWrite, hasResult, message],
+    () => (isEditOrWrite && hasFinalResult ? getToolDiffStats(message) : null),
+    [isEditOrWrite, hasFinalResult, message],
   );
 
   // Track whether toolResult was present at mount (persisted session → skip auto-expand)
-  const initialHadResult = useRef(hasResult);
+  const initialHadResult = useRef(hasFinalResult);
   // Track whether user manually toggled the collapsible (cancel auto-collapse)
   const userToggled = useRef(false);
   const autoCollapseTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -131,13 +142,13 @@ const RegularTool = memo(function RegularTool({
   // Auto-expand on result arrival, then auto-collapse after 2s
   useEffect(() => {
     if (!autoExpandTools) return () => clearTimeout(autoCollapseTimer.current);
-    if (!hasResult || initialHadResult.current || skipAutoExpandOnResult || hasStoredExpanded || userToggled.current) return;
+    if (!hasFinalResult || initialHadResult.current || skipAutoExpandOnResult || hasStoredExpanded || userToggled.current) return;
     setExpanded(true);
     autoCollapseTimer.current = setTimeout(() => {
       if (!userToggled.current) setExpanded(false);
     }, 2000);
     return () => clearTimeout(autoCollapseTimer.current);
-  }, [autoExpandTools, hasResult, hasStoredExpanded, setExpanded, skipAutoExpandOnResult]);
+  }, [autoExpandTools, hasFinalResult, hasStoredExpanded, setExpanded, skipAutoExpandOnResult]);
 
   const handleOpenChange = (open: boolean) => {
     if (isPlanTool) return;
@@ -242,6 +253,7 @@ const RegularTool = memo(function RegularTool({
   prev.showToolIcons === next.showToolIcons &&
   prev.coloredToolIcons === next.coloredToolIcons &&
   prev.disableCollapseAnimation === next.disableCollapseAnimation &&
+  prev.isConversationProcessing === next.isConversationProcessing &&
   prev.message.toolInput === next.message.toolInput &&
   prev.message.toolResult === next.message.toolResult &&
   prev.message.toolError === next.message.toolError,

@@ -26,6 +26,7 @@ interface ToolGroupBlockProps {
   showToolIcons?: boolean;
   coloredToolIcons?: boolean;
   disableCollapseAnimation?: boolean;
+  isConversationProcessing?: boolean;
   /** When true (live streaming), runs a one-time tools -> group morph animation.
    *  When false (restored session), renders collapsed immediately. */
   animate: boolean;
@@ -79,6 +80,7 @@ export const ToolGroupBlock = memo(function ToolGroupBlock({
   showToolIcons = true,
   coloredToolIcons = false,
   disableCollapseAnimation = false,
+  isConversationProcessing = false,
   animate,
 }: ToolGroupBlockProps) {
   // Lock animation decision at mount. Parent re-renders may flip `animate` to false
@@ -294,6 +296,7 @@ export const ToolGroupBlock = memo(function ToolGroupBlock({
             showToolIcons={showToolIcons}
             coloredToolIcons={coloredToolIcons}
             disableCollapseAnimation={disableCollapseAnimation}
+            isConversationProcessing={isConversationProcessing}
           />
         ) : (
           <ThinkingBlock
