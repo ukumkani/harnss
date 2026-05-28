@@ -284,6 +284,11 @@ export const FilesPanel = memo(function FilesPanel({
     };
   }, [resolvedTheme, reviewFile, selectedLanguage]);
   const highlightedLines = useMemo(() => renderHighlightedLines(highlightedLineTokens), [highlightedLineTokens]);
+  const previewLines = useMemo(() => {
+    if (highlightedLines.length > 0) return highlightedLines;
+    const content = reviewFile?.content ?? "";
+    return content.split("\n").map((line) => line || " ");
+  }, [highlightedLines, reviewFile?.content]);
   const selectedDisplayPath = selectedPath ? compactDisplayPath(selectedPath, cwd) : "";
   const previewSearchKey = `${selectedPath ?? ""}:${reviewFile?.loading ? "loading" : "ready"}:${reviewFile?.content.length ?? 0}:${reviewFile?.error ?? ""}`;
   const previewSearch = useRegionSearch(previewSearchRootRef, previewSearchKey);
@@ -433,7 +438,7 @@ export const FilesPanel = memo(function FilesPanel({
                         </div>
                       ) : (
                         <pre className="m-0 min-w-max p-3 font-mono text-sm leading-5 text-foreground/85">
-                          {highlightedLines.map((line, index) => (
+                          {previewLines.map((line, index) => (
                             <div key={index} className="flex min-h-5">
                               <span className="w-10 shrink-0 select-none pr-3 text-right tabular-nums text-muted-foreground/35">
                                 {index + 1}

@@ -140,6 +140,7 @@ interface ChatMessageRowProps {
   showThinking: boolean;
   currentTurnMessageId: string | null;
   currentTurnState: "processing" | "permission" | null;
+  currentTurnStartIndex: number;
   lastEditableUserMessageId: string | null;
   animatingGroupKeys: Set<string>;
   assistantTurnDividerLabels: Map<string, string>;
@@ -158,6 +159,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
   showThinking,
   currentTurnMessageId,
   currentTurnState,
+  currentTurnStartIndex,
   lastEditableUserMessageId,
   animatingGroupKeys,
   assistantTurnDividerLabels,
@@ -195,6 +197,9 @@ const ChatMessageRow = memo(function ChatMessageRow({
   if (row.kind === "tool_group") {
     const groupKey = row.group.tools[0].id;
     const isNewGroup = animatingGroupKeys.has(groupKey);
+    const isCurrentTurnProcessing = currentTurnState !== null &&
+      currentTurnStartIndex >= 0 &&
+      row.group.startIndex > currentTurnStartIndex;
     return (
       <Fragment>
         <ToolGroupBlock
@@ -206,6 +211,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
           showToolIcons={showToolIcons}
           coloredToolIcons={coloredToolIcons}
           disableCollapseAnimation
+          isConversationProcessing={isCurrentTurnProcessing}
           animate={isNewGroup}
         />
         {row.groupTurnSummary ? <TurnChangesSummary summary={row.groupTurnSummary} onOpenFile={onOpenFile} /> : null}
@@ -225,6 +231,9 @@ const ChatMessageRow = memo(function ChatMessageRow({
   }
 
   if (msg.role === "tool_call") {
+    const isCurrentTurnProcessing = currentTurnState !== null &&
+      currentTurnStartIndex >= 0 &&
+      row.originalIndex > currentTurnStartIndex;
     return (
       <div data-message-id={msg.id}>
         <ToolCall
@@ -234,6 +243,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
           showToolIcons={showToolIcons}
           coloredToolIcons={coloredToolIcons}
           disableCollapseAnimation
+          isConversationProcessing={isCurrentTurnProcessing}
         />
       </div>
     );
@@ -268,6 +278,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
   prev.showThinking === next.showThinking &&
   prev.currentTurnMessageId === next.currentTurnMessageId &&
   prev.currentTurnState === next.currentTurnState &&
+  prev.currentTurnStartIndex === next.currentTurnStartIndex &&
   prev.lastEditableUserMessageId === next.lastEditableUserMessageId &&
   prev.animatingGroupKeys === next.animatingGroupKeys &&
   prev.assistantTurnDividerLabels === next.assistantTurnDividerLabels &&
@@ -583,6 +594,10 @@ function ChatViewContent({
     const lastUserMessage = nonQueuedMessages.findLast((m) => m.role === "user" && !m.isQueued);
     return lastUserMessage?.id ?? null;
   }, [currentTurnState, nonQueuedMessages]);
+  const currentTurnStartIndex = useMemo(() => {
+    if (!currentTurnMessageId) return -1;
+    return nonQueuedMessages.findIndex((m) => m.id === currentTurnMessageId);
+  }, [currentTurnMessageId, nonQueuedMessages]);
   const lastEditableUserMessageId = useMemo(() => {
     return nonQueuedMessages.findLast((m) => m.role === "user" && !m.isQueued)?.id ?? null;
   }, [nonQueuedMessages]);
@@ -900,6 +915,7 @@ function ChatViewContent({
                   showThinking={showThinking}
                   currentTurnMessageId={currentTurnMessageId}
                   currentTurnState={currentTurnState}
+                  currentTurnStartIndex={currentTurnStartIndex}
                   lastEditableUserMessageId={lastEditableUserMessageId}
                   animatingGroupKeys={animatingGroupKeys}
                   assistantTurnDividerLabels={assistantTurnDividerLabels}

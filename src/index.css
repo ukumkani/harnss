@@ -796,16 +796,6 @@ html.platform-win32 .drag-region {
     0 1px 4px color-mix(in oklch, var(--permission-prompt-red) 52%, transparent);
 }
 
-@keyframes chat-turn-processing-breathe {
-  0%,
-  100% {
-    background-color: color-mix(in oklch, var(--foreground) 8%, transparent);
-  }
-  50% {
-    background-color: color-mix(in oklch, var(--foreground) 28%, transparent);
-  }
-}
-
 @keyframes chat-turn-permission-breathe {
   0%,
   100% {
@@ -817,8 +807,7 @@ html.platform-win32 .drag-region {
 }
 
 .chat-user-turn-processing {
-  background-color: color-mix(in oklch, var(--foreground) 16%, transparent);
-  animation: chat-turn-processing-breathe 2.175s ease-in-out infinite;
+  background-color: color-mix(in oklch, var(--foreground) 50%, transparent);
 }
 
 .chat-user-turn-permission {
